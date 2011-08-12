@@ -10,14 +10,18 @@ StumbleCache
 - make things very configurable, so we can have multiple caches per machine,
   user specified # blocks, size etc
 
-API wise:
+API
+---
+
 - like store and fetch, update
 - with cache configured from userland
 - per datatype: user records, url id,
 - so expiry on a ttl, and the client can also update a specific entry
 - each item has a specific ttl
 - statistics: qps and hitrate
+
   - write at end of process, doesn't matter if they are out of date
+
     - just for monitoring
 	- 64bit linux
 	- url id is 64bit
