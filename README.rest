@@ -1,0 +1,26 @@
+============
+StumbleCache
+============
+
+- MMAP based file backed
+- Fixed allocations ie. 500k 2k cache blocks
+- No gc, if we see a url once in will most likely be used again so just let it
+  keep that storage block, we would likely clear the entire cache every x days
+- Minimal locking - keep stats per process, block based locking if needed
+- make things very configurable, so we can have multiple caches per machine,
+  user specified # blocks, size etc
+
+API wise:
+- like store and fetch, update
+- with cache configured from userland
+- per datatype: user records, url id,
+- so expiry on a ttl, and the client can also update a specific entry
+- each item has a specific ttl
+- statistics: qps and hitrate
+  - write at end of process, doesn't matter if they are out of date
+    - just for monitoring
+	- 64bit linux
+	- url id is 64bit
+	- data is just a variable
+	- igbinary or php serialisation
+
