@@ -11,7 +11,7 @@ StumbleCache
   user specified # blocks, size etc
 
 API
----
+===
 
 - like store and fetch, update
 - with cache configured from userland
@@ -21,10 +21,66 @@ API
 - statistics: qps and hitrate
 
   - write at end of process, doesn't matter if they are out of date
+  - just for monitoring
 
-    - just for monitoring
-    - 64bit linux
-    - url id is 64bit
-    - data is just a variable
-    - igbinary or php serialisation
+- 64bit linux
+- url id is 64bit
+- data is just a variable
+- igbinary or php serialisation
+
+
+INI
+---
+
+- stumblecache.location: the path where all the caches are stored
+
+Class: StumbleCacheOptions
+--------------------------
+
+__construct( nrOfItems, itemSize )
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+- nrOfItems is the maximum number of items in the cache.
+- itemSize is the size of each item in the cache.
+	rounded up to nearest 4kb (or pagesize)
+
+The cache will use nrOfItems * itemSize amount of memory, plus some overhead.
+
+
+Class: StumbleCache
+-------------------
+
+__construct ( cacheRef )
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+- cacheRef: string: name of the cache
+
+
+Cache Layout
+============
+
+/tmp/<cache-id>.scstats:
+
+
+
+/tmp/<cache-id>.scache:
+
+page 0: meta-data
+	cache file version: 4 bytes
+	item size:          4 bytes
+	nr of items:        4 bytes
+	next data page:     4 bytes
+
+page 1-x: index, b-tree
+	b-tree node: 1023 keys, 1024 children
+		header:
+			leaf: yes/no                byte
+			nrOfKeys: 1-1023          2 bytes
+		keys:
+			key:                      8 bytes
+			value idx:                4 bytes  number = idx into data block
+			expire ts:                2 bytes
+			flags:                    2 bytes
+				in use:               1 bit
+
 
