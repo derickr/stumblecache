@@ -38,3 +38,25 @@ int btree_search(btree_node *node, uint64_t key, uint32_t *idx)
 		return btree_search(tmp_node, key, idx);
 	}
 }
+
+btree_tree *btree_allocate()
+{
+}
+
+btree_node *btree_allocate_node()
+{
+	idx = mmap_find_next_index();
+	return (btree_node*) mmap_data->data[idx * mmap_data->pagesize];
+}
+
+btree_tree *btree_create(void)
+{
+	btree      *tmp_tree = btree_allocate();
+	btree_node *tmp_node = btree_allocate_node();
+	tmp_node->leaf = 1;
+	tmp_node->nr_of_keys = 0;
+	btree_set_node(tmp_node);
+
+	tmp_tree->root = tmp_node;
+	return tmp_tree;
+}
