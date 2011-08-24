@@ -1,6 +1,6 @@
 #define BTREE_HEADER_SIZE 4096
-#define BTREE_T            102
-#define BTREE_T2           204
+#define BTREE_T            4
+#define BTREE_T2           (2 * BTREE_T)
 
 #include <stdint.h>
 

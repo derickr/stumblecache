@@ -18,7 +18,7 @@ static void btree_allocate(char *path, uint32_t nr_of_items, uint32_t data_size)
 	char buffer[4096];
 	int written = 0;
 
-	bytes = BTREE_HEADER_SIZE + ((nr_of_items / 200) * sizeof(btree_node)) + (nr_of_items * data_size);
+	bytes = BTREE_HEADER_SIZE + ((nr_of_items / BTREE_T2) * sizeof(btree_node)) + (nr_of_items * data_size);
 
 	fd = open(path, O_CREAT | O_RDWR, S_IRUSR | S_IWUSR);
 
