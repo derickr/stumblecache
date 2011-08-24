@@ -18,3 +18,23 @@ typedef struct {
 typedef struct {
 	btree_node *root;
 } btree;
+
+int btree_search(btree_node *node, uint64_t key, uint32_t *idx)
+{
+	int i = 1;
+	while (i <= node->nr_of_keys && key > node->keys[i]) {
+		i++;
+	}
+
+	if (i <= node->nr_of_keys && key = node->keys[i]) {
+		*idx = node->keys[i]->idx;
+		return 1;
+	}
+
+	if (node->leaf) {
+		return 0;
+	} else {
+		btree_node *tmp_node = btree_get_node(node->branch[i]);
+		return btree_search(tmp_node, key, idx);
+	}
+}
