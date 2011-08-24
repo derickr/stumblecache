@@ -3,6 +3,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <stdio.h>
+#include <string.h>
 
 btree_node *btree_get_node(uint32_t idx)
 {
@@ -34,16 +35,16 @@ btree_node *btree_allocate_node()
 //	return (btree_node*) mmap_data->data[idx * mmap_data->pagesize];
 }
 
-static btree_write_header(btree_btree *tree)
+static btree_write_header(btree_tree *tree)
 {
 }
 
-btree_tree *btree_create(uint32_t nr_of_items, uint32_t data_size)
+btree_tree *btree_create(char *path, uint32_t nr_of_items, uint32_t data_size)
 {
 	btree_tree *tmp_tree;
 	btree_node *tmp_node;
 
-	tmp_tree = btree_allocate(nr_of_items, data_size);
+	tmp_tree = btree_allocate(path, nr_of_items, data_size);
 	btree_write_header(tmp_tree);
 
 	tmp_node = btree_allocate_node();
