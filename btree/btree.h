@@ -39,8 +39,15 @@ int btree_search(btree_node *node, uint64_t key, uint32_t *idx)
 	}
 }
 
-btree_tree *btree_allocate()
+btree_tree *btree_allocate(uint32_t nr_of_items, uint32_t data_size)
 {
+	int fd;
+	int64_t bytes;
+
+	bytes = 4096 + ((nr_of_items / 200) * sizeof(struct btree_node)) + (nr_of_items * data_size);
+
+	fd = open("/tmp/test.mmap", O_CREAT);
+printf("Creating contents: %d bytes\n");
 }
 
 btree_node *btree_allocate_node()
