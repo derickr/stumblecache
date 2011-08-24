@@ -1,5 +1,6 @@
-#define BTREE_T    102
-#define BTREE_T2   204
+#define BTREE_HEADER_SIZE 4096
+#define BTREE_T            102
+#define BTREE_T2           204
 
 #include <stdint.h>
 
@@ -18,8 +19,21 @@ typedef struct {
 } btree_node; /* 204*4 + 203*16 + 1 + 2 = 4067, which fits nicely in a page */
 
 typedef struct {
-	btree_node *root;
+	uint32_t version;
+	uint32_t max_items;
+	uint32_t item_size;
+	uint32_t next_node_idx;
+	uint32_t next_idx;
+} btree_header;
+
+typedef struct {
+	btree_header *header;
+	btree_node   *root;
+	int           fd;
+	void         *mmap;
+	void         *nodes;
+	void         *data;
 } btree_tree;
 
-int btree_search(btree_node *node, uint64_t key, uint32_t *idx);
+int btree_search(btree_tree *t, btree_node *node, uint64_t key, uint32_t *idx);
 btree_tree *btree_create(char *path, uint32_t nr_of_items, uint32_t data_size);
