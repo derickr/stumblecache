@@ -144,3 +144,42 @@ btree_split_child(btree_tree *t, btree_node *parent, uint32_t key_nr, btree_node
 	btree_set_node(tmp_node);
 	btree_set_node(child);
 }
+
+btree_insert(btree_tree *t, uint64_t key, uint32_t *data_idx)
+{
+	btree_node *r = t->root;
+
+	if (r->nr_of_keys == BTREE_T2 - 1) {
+	} else {
+		btree_insert_non_full(t, r, key, data_idx);
+	}
+}
+
+btree_insert_non_full(btree_tree *t, btree_node *node, uint64_t key, uint32_t *data_idx)
+{
+	uint32_t i;
+	btree_node *tmp_node;
+
+	i = node->nr_of_keys;
+	if (node->leaf) {
+		while (i >= 1 && key < node->keys[i].key) {
+			node->keys[i + 1].key = node->keys[i].key;
+			i--;
+		}
+		node->keys[i + 1].key = key;
+		node->nr_of_keys++;
+	} else {
+		while (i >= 1 && key < node->keys[i].key) {
+			i--;
+		}
+		i++;
+		tmp_node = btree_get_node(node->branch[i]);
+		if (tmp_node->nr_of_keys == BTREE_T2 - 1) {
+			btree_split_child(t, node, i, tmp_node);
+			if (key > node->keys[i].key) {
+				i++;
+			}
+		}
+		btree_insert_non_full(t, tmp_node, key, data_idx);
+	}
+}
