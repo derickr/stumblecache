@@ -1,6 +1,8 @@
 #define BTREE_T    102
 #define BTREE_T2   204
 
+#include <stdint.h>
+
 typedef struct {
 	uint64_t key;
 	uint32_t idx;       /* index into data portion */
@@ -17,8 +19,7 @@ typedef struct {
 
 typedef struct {
 	btree_node *root;
-} btree;
+} btree_tree;
 
 int btree_search(btree_node *node, uint64_t key, uint32_t *idx);
-btree_tree *btree_allocate(uint32_t nr_of_items, uint32_t data_size);
-btree_tree *btree_create(void);
+btree_tree *btree_create(uint32_t nr_of_items, uint32_t data_size);
