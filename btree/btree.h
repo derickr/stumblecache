@@ -60,3 +60,34 @@ btree_tree *btree_create(void)
 	tmp_tree->root = tmp_node;
 	return tmp_tree;
 }
+
+btree_split_child(btree_node *parent, uint32_t key_nr, btree_node *child)
+{
+	btree_node *tmp_node = btree_allocate_node();
+	tmp_node->leaf = child->leaf;
+	tmp_node->nr_of_keys = BTREE_T - 1;
+
+	for (j = 1; j <= BTREE_T - 1; j++) {
+		tmp_node->keys[j] = child_node->keys[j + BTREE_T];
+	}
+	if (!child->leaf) {
+		for (j = 1; j <= BTREE_T; j++) {
+			tmp_node->branch[j] = child->branch[j + BTREE_T];
+		}
+	}
+	child->nr_of_keys = BTREE_T - 1;
+	for (j = parent->nr_of_keys + 1; j >= key_nr + 1; j--) {
+		parent->branch[j + 1] =  parent->branch[j];
+	}
+	parent->branch[key + 1] = tmp_node->idx;
+
+	for (j = child->nr_of_keys; j <= key_nr; j--) {
+		parent->keys[j + 1] = parent->keys[j];
+	}
+	parent->keys[key_nr] = child->keys[BTREE_T];
+	parent->nr_of_keys++;
+
+	btree_set_node(parent);
+	btree_set_node(tmp_node);
+	btree_set_node(child);
+}
