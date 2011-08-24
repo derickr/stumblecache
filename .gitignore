@@ -18,10 +18,10 @@ lib/
 .libs/
 libtool
 ltmain.sh
-Makefile
-Makefile.fragments
-Makefile.global
-Makefile.objects
+/Makefile
+/Makefile.fragments
+/Makefile.global
+/Makefile.objects
 missing
 mkinstalldirs
 modules/
