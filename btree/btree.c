@@ -94,12 +94,12 @@ int btree_set_node(btree_node *node)
 
 int btree_search(btree_tree *t, btree_node *node, uint64_t key, uint32_t *idx)
 {
-	int i = 1;
-	while (i <= node->nr_of_keys && key > node->keys[i].key) {
+	int i = 0;
+	while (i < node->nr_of_keys && key > node->keys[i].key) {
 		i++;
 	}
 
-	if (i <= node->nr_of_keys && key == node->keys[i].key) {
+	if (i < node->nr_of_keys && key == node->keys[i].key) {
 		*idx = node->keys[i].idx;
 		return 1;
 	}
@@ -120,21 +120,21 @@ btree_split_child(btree_tree *t, btree_node *parent, uint32_t key_nr, btree_node
 	tmp_node->leaf = child->leaf;
 	tmp_node->nr_of_keys = BTREE_T - 1;
 
-	for (j = 1; j <= BTREE_T - 1; j++) {
+	for (j = 0; j < BTREE_T - 1; j++) {
 		tmp_node->keys[j] = child->keys[j + BTREE_T];
 	}
 	if (!child->leaf) {
-		for (j = 1; j <= BTREE_T; j++) {
+		for (j = 0; j < BTREE_T; j++) {
 			tmp_node->branch[j] = child->branch[j + BTREE_T];
 		}
 	}
 	child->nr_of_keys = BTREE_T - 1;
-	for (j = parent->nr_of_keys + 1; j >= key_nr + 1; j--) {
+	for (j = parent->nr_of_keys; j > key_nr + 1; j--) {
 		parent->branch[j + 1] =  parent->branch[j];
 	}
 	parent->branch[key_nr + 1] = tmp_node->idx;
 
-	for (j = child->nr_of_keys; j <= key_nr; j--) {
+	for (j = child->nr_of_keys - 1; j < key_nr; j--) {
 		parent->keys[j + 1] = parent->keys[j];
 	}
 	parent->keys[key_nr] = child->keys[BTREE_T];
@@ -162,14 +162,14 @@ btree_insert_non_full(btree_tree *t, btree_node *node, uint64_t key, uint32_t *d
 
 	i = node->nr_of_keys;
 	if (node->leaf) {
-		while (i >= 1 && key < node->keys[i].key) {
-			node->keys[i + 1].key = node->keys[i].key;
+		while (i > 0 && key < node->keys[i - 1].key) {
+			node->keys[i].key = node->keys[i - 1].key;
 			i--;
 		}
-		node->keys[i + 1].key = key;
+		node->keys[i].key = key;
 		node->nr_of_keys++;
 	} else {
-		while (i >= 1 && key < node->keys[i].key) {
+		while (i >= 0 && key < node->keys[i].key) {
 			i--;
 		}
 		i++;
