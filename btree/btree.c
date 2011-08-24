@@ -163,10 +163,11 @@ btree_insert_non_full(btree_tree *t, btree_node *node, uint64_t key, uint32_t *d
 	i = node->nr_of_keys;
 	if (node->leaf) {
 		while (i > 0 && key < node->keys[i - 1].key) {
-			node->keys[i].key = node->keys[i - 1].key;
+			node->keys[i] = node->keys[i - 1];
 			i--;
 		}
 		node->keys[i].key = key;
+		/* Fetch data index, and set it to the idx element here too */
 		node->nr_of_keys++;
 	} else {
 		while (i >= 0 && key < node->keys[i].key) {
