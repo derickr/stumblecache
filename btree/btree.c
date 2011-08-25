@@ -109,7 +109,7 @@ int btree_search(btree_tree *t, btree_node *node, uint64_t key, uint32_t *idx)
 	if (node->leaf) {
 		return 0;
 	} else {
-		btree_node *tmp_node = btree_get_node(node->branch[i]);
+		btree_node *tmp_node = btree_get_node(t, node->branch[i]);
 		return btree_search(t, tmp_node, key, idx);
 	}
 }
@@ -150,8 +150,16 @@ btree_split_child(btree_tree *t, btree_node *parent, uint32_t key_nr, btree_node
 btree_insert(btree_tree *t, uint64_t key, uint32_t *data_idx)
 {
 	btree_node *r = t->root;
-
 	if (r->nr_of_keys == BTREE_T2 - 1) {
+		btree_node *tmp_node;
+
+		tmp_node = btree_allocate_node(t);
+		t->root = tmp_node;
+		tmp_node->leaf = 0;
+		tmp_node->nr_of_keys = 0;
+		tmp_node->branch[0] = r->idx;
+		btree_split_child(t, tmp_node, 0, r);
+		btree_insert_non_full(t, tmp_node, key, data_idx);
 	} else {
 		btree_insert_non_full(t, r, key, data_idx);
 	}
@@ -172,17 +180,41 @@ btree_insert_non_full(btree_tree *t, btree_node *node, uint64_t key, uint32_t *d
 		/* Fetch data index, and set it to the idx element here too */
 		node->nr_of_keys++;
 	} else {
-		while (i >= 0 && key < node->keys[i].key) {
+		while (i > 0 && key < node->keys[i - 1].key) {
 			i--;
 		}
-		i++;
-		tmp_node = btree_get_node(node->branch[i]);
+		tmp_node = btree_get_node(t, node->branch[i]);
 		if (tmp_node->nr_of_keys == BTREE_T2 - 1) {
 			btree_split_child(t, node, i, tmp_node);
 			if (key > node->keys[i].key) {
 				i++;
 			}
 		}
-		btree_insert_non_full(t, tmp_node, key, data_idx);
+		btree_insert_non_full(t, btree_get_node(t, node->branch[i]), key, data_idx);
 	}
+}
+
+void btree_dump_node(btree_tree *t, btree_node *node)
+{
+	int i;
+
+	printf("\nIDX: %d\n   ", node->idx);
+	for (i = 0; i < node->nr_of_keys; i++) {
+		printf("%4d ", node->keys[i].key);
+	}
+	if (!node->leaf) {
+		printf("\n");
+		for (i = 0; i < node->nr_of_keys + 1; i++) {
+			printf("%4d ", node->branch[i]);
+		}
+		for (i = 0; i < node->nr_of_keys + 1; i++) {
+			btree_dump_node(t, btree_get_node(t, node->branch[i]));
+		}
+	}
+}
+
+void btree_dump_tree(btree_tree *t)
+{
+	btree_dump_node(t, t->root);
+	printf("\n");
 }

@@ -37,3 +37,5 @@ typedef struct {
 
 int btree_search(btree_tree *t, btree_node *node, uint64_t key, uint32_t *idx);
 btree_tree *btree_create(char *path, uint32_t nr_of_items, uint32_t data_size);
+void btree_dump_node(btree_tree *t, btree_node *node);
+void btree_dump_tree(btree_tree *t);
