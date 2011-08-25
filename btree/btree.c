@@ -38,6 +38,7 @@ btree_node *btree_allocate_node(btree_tree *t)
 
 	/* LOCK */
 	tmp_node = t->nodes + (t->header->next_node_idx * 4096);
+	tmp_node->idx = t->header->next_node_idx;
 	t->header->next_node_idx++;
 	/* UNLOCK */
 
