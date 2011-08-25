@@ -7,8 +7,9 @@
 #include <sys/mman.h>
 #include <stdlib.h>
 
-btree_node *btree_get_node(uint32_t idx)
+btree_node *btree_get_node(btree_tree *t, uint32_t idx)
 {
+	return (btree_node*) (t->nodes + (idx * 4096));
 }
 
 static void btree_allocate(char *path, uint32_t nr_of_items, uint32_t data_size)
