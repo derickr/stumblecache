@@ -57,6 +57,6 @@ int main(void)
 	btree_insert(tmp, 'u', (void*) 0);
 	btree_insert(tmp, 'v', (void*) 0);
 
-	btree_dump_tree(tmp);
+	btree_dump(tmp);
 	btree_free(tmp);
 }

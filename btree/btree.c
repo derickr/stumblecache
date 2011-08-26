@@ -225,7 +225,7 @@ void btree_dump_node(btree_tree *t, btree_node *node)
 	}
 }
 
-void btree_dump_tree(btree_tree *t)
+void btree_dump(btree_tree *t)
 {
 	btree_dump_node(t, t->root);
 	printf("\n");
