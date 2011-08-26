@@ -131,17 +131,22 @@ btree_split_child(btree_tree *t, btree_node *parent, uint32_t key_nr, btree_node
 		}
 	}
 	child->nr_of_keys = BTREE_T - 1;
-	for (j = parent->nr_of_keys; j > key_nr + 1; j--) {
-		parent->branch[j + 1] =  parent->branch[j];
+
+	for (j = parent->nr_of_keys + 1; j > key_nr; j--) {
+		parent->branch[j] = parent->branch[j - 1];
 	}
 	parent->branch[key_nr + 1] = tmp_node->idx;
 
-	for (j = child->nr_of_keys - 1; j < key_nr; j--) {
-		parent->keys[j + 1] = parent->keys[j];
+	for (j = parent->nr_of_keys; j > key_nr; j--) {
+		parent->keys[j] = parent->keys[j - 1];
 	}
-	parent->keys[key_nr] = child->keys[BTREE_T];
+	parent->keys[key_nr] = child->keys[BTREE_T - 1];
 	parent->nr_of_keys++;
-
+/*
+	for (j = BTREE_T - 1; j < child->nr_of_keys; j++) {
+		child->keys[j].key = 0;
+	}
+*/
 	btree_set_node(parent);
 	btree_set_node(tmp_node);
 	btree_set_node(child);
