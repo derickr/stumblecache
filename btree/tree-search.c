@@ -6,4 +6,5 @@ int main(void)
 
 	tmp = btree_open("test.mmap");
 	btree_dump_tree(tmp);
+	btree_free(tmp);
 }

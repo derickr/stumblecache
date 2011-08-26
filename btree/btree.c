@@ -91,6 +91,11 @@ btree_tree *btree_create(char *path, uint32_t nr_of_items, uint32_t data_size)
 	return tmp_tree;
 }
 
+void btree_free(btree_tree *t)
+{
+	free(t);
+}
+
 int btree_set_node(btree_node *node)
 {
 }
