@@ -61,6 +61,7 @@ btree_tree *btree_open(char *path)
 	t->mmap = memory;
 	t->header = (btree_header*) t->mmap;
 	t->nodes  = t->mmap + BTREE_HEADER_SIZE;
+	t->root   = btree_get_node(t, t->header->root_node_idx);
 
 	return t;
 }
@@ -160,6 +161,7 @@ btree_insert(btree_tree *t, uint64_t key, uint32_t *data_idx)
 
 		tmp_node = btree_allocate_node(t);
 		t->root = tmp_node;
+		t->header->root_node_idx = tmp_node->idx;
 		tmp_node->leaf = 0;
 		tmp_node->nr_of_keys = 0;
 		tmp_node->branch[0] = r->idx;

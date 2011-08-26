@@ -24,6 +24,7 @@ typedef struct {
 	uint32_t item_size;
 	uint32_t next_node_idx;
 	uint32_t next_idx;
+	uint32_t root_node_idx;
 } btree_header;
 
 typedef struct {
