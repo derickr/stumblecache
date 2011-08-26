@@ -45,7 +45,7 @@ btree_node *btree_allocate_node(btree_tree *t)
 	return tmp_node;
 }
 
-static btree_tree *btree_open(char *path)
+btree_tree *btree_open(char *path)
 {
 	int fd;
 	void *memory;
