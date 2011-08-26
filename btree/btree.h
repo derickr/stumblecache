@@ -1,6 +1,6 @@
 #define BTREE_HEADER_SIZE 4096
-#define BTREE_T            4
-#define BTREE_T2           (2 * BTREE_T)
+#define BTREE_T(t)            (t->header->order)
+#define BTREE_T2(t)           (2 * t->header->order)
 
 #include <stdint.h>
 
@@ -12,14 +12,15 @@ typedef struct {
 
 typedef struct {
 	uint32_t      idx;        /* the node's index into the data store */
-	uint32_t      branch[BTREE_T2];
-	btree_key     keys[BTREE_T2 - 1];
-	char          leaf;       /* whether it's a leaf node or not */
+	uint32_t      branch[204];
+	btree_key     keys[203];
 	uint16_t      nr_of_keys; /* number of keys in use */
+	char          leaf;       /* whether it's a leaf node or not */
 } btree_node; /* 204*4 + 203*16 + 1 + 2 = 4067, which fits nicely in a page */
 
 typedef struct {
 	uint32_t version;
+	uint32_t order;
 	uint32_t max_items;
 	uint32_t item_size;
 	uint32_t next_node_idx;
@@ -37,7 +38,7 @@ typedef struct {
 } btree_tree;
 
 btree_tree *btree_open(char *path);
-btree_tree *btree_create(char *path, uint32_t nr_of_items, uint32_t data_size);
+btree_tree *btree_create(char *path, uint32_t order, uint32_t nr_of_items, uint32_t data_size);
 void btree_free(btree_tree *t);
 
 int btree_search(btree_tree *t, btree_node *node, uint64_t key, uint32_t *idx);

@@ -12,14 +12,14 @@ btree_node *btree_get_node(btree_tree *t, uint32_t idx)
 	return (btree_node*) (t->nodes + (idx * 4096));
 }
 
-static void btree_allocate(char *path, uint32_t nr_of_items, uint32_t data_size)
+static void btree_allocate(char *path, uint32_t order, uint32_t nr_of_items, uint32_t data_size)
 {
 	int fd;
 	int64_t bytes;
 	char buffer[4096];
 	int written = 0;
 
-	bytes = BTREE_HEADER_SIZE + ((nr_of_items / BTREE_T2) * sizeof(btree_node)) + (nr_of_items * data_size);
+	bytes = BTREE_HEADER_SIZE + ((nr_of_items / (order * 2)) * sizeof(btree_node)) + (nr_of_items * data_size);
 
 	fd = open(path, O_CREAT | O_RDWR, S_IRUSR | S_IWUSR);
 
@@ -66,16 +66,17 @@ btree_tree *btree_open(char *path)
 	return t;
 }
 
-btree_tree *btree_create(char *path, uint32_t nr_of_items, uint32_t data_size)
+btree_tree *btree_create(char *path, uint32_t order, uint32_t nr_of_items, uint32_t data_size)
 {
 	btree_tree *tmp_tree;
 	btree_node *tmp_node;
 
-	btree_allocate(path, nr_of_items, data_size);
+	btree_allocate(path, order, nr_of_items, data_size);
 
 	tmp_tree = btree_open(path);
 
 	tmp_tree->header->version = 1;
+	tmp_tree->header->order = order;
 	tmp_tree->header->max_items = nr_of_items;
 	tmp_tree->header->item_size = data_size;
 	tmp_tree->header->next_node_idx = 0;
@@ -126,17 +127,17 @@ btree_split_child(btree_tree *t, btree_node *parent, uint32_t key_nr, btree_node
 
 	btree_node *tmp_node = btree_allocate_node(t);
 	tmp_node->leaf = child->leaf;
-	tmp_node->nr_of_keys = BTREE_T - 1;
+	tmp_node->nr_of_keys = BTREE_T(t) - 1;
 
-	for (j = 0; j < BTREE_T - 1; j++) {
-		tmp_node->keys[j] = child->keys[j + BTREE_T];
+	for (j = 0; j < BTREE_T(t) - 1; j++) {
+		tmp_node->keys[j] = child->keys[j + BTREE_T(t)];
 	}
 	if (!child->leaf) {
-		for (j = 0; j < BTREE_T; j++) {
-			tmp_node->branch[j] = child->branch[j + BTREE_T];
+		for (j = 0; j < BTREE_T(t); j++) {
+			tmp_node->branch[j] = child->branch[j + BTREE_T(t)];
 		}
 	}
-	child->nr_of_keys = BTREE_T - 1;
+	child->nr_of_keys = BTREE_T(t) - 1;
 
 	for (j = parent->nr_of_keys + 1; j > key_nr; j--) {
 		parent->branch[j] = parent->branch[j - 1];
@@ -146,10 +147,10 @@ btree_split_child(btree_tree *t, btree_node *parent, uint32_t key_nr, btree_node
 	for (j = parent->nr_of_keys; j > key_nr; j--) {
 		parent->keys[j] = parent->keys[j - 1];
 	}
-	parent->keys[key_nr] = child->keys[BTREE_T - 1];
+	parent->keys[key_nr] = child->keys[BTREE_T(t) - 1];
 	parent->nr_of_keys++;
 /*
-	for (j = BTREE_T - 1; j < child->nr_of_keys; j++) {
+	for (j = BTREE_T(t) - 1; j < child->nr_of_keys; j++) {
 		child->keys[j].key = 0;
 	}
 */
@@ -161,7 +162,7 @@ btree_split_child(btree_tree *t, btree_node *parent, uint32_t key_nr, btree_node
 btree_insert(btree_tree *t, uint64_t key, uint32_t *data_idx)
 {
 	btree_node *r = t->root;
-	if (r->nr_of_keys == BTREE_T2 - 1) {
+	if (r->nr_of_keys == BTREE_T2(t) - 1) {
 		btree_node *tmp_node;
 
 		tmp_node = btree_allocate_node(t);
@@ -196,7 +197,7 @@ btree_insert_non_full(btree_tree *t, btree_node *node, uint64_t key, uint32_t *d
 			i--;
 		}
 		tmp_node = btree_get_node(t, node->branch[i]);
-		if (tmp_node->nr_of_keys == BTREE_T2 - 1) {
+		if (tmp_node->nr_of_keys == BTREE_T2(t) - 1) {
 			btree_split_child(t, node, i, tmp_node);
 			if (key > node->keys[i].key) {
 				i++;

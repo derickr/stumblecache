@@ -4,7 +4,7 @@ int main(void)
 {
 	btree_tree *tmp;
 
-	tmp = btree_create("test.mmap", 400, 1024);
+	tmp = btree_create("test.mmap", 3, 400, 1024);
 	btree_insert(tmp, 'A', (void*) 0);
 	btree_insert(tmp, 'L', (void*) 0);
 	btree_insert(tmp, 'D', (void*) 0);
