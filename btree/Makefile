@@ -1,2 +1,4 @@
-test-tree: test.c btree.c
-	gcc -ggdb3 -o test-tree test.c btree.c
+all: tree-create
+
+tree-create: tree-create.c btree.c btree.h
+	gcc -ggdb3 -o tree-create tree-create.c btree.c
