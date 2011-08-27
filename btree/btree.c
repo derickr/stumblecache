@@ -226,6 +226,40 @@ void btree_dump_node(btree_tree *t, btree_node *node)
 	}
 }
 
+void btree_dump_node_dot(btree_tree *t, btree_node *node)
+{
+	int i;
+
+	printf("\n\"IDX%d\" [\nlabel=\"{{", node->idx);
+	for (i = 0; i < node->nr_of_keys; i++) {
+		printf("%s%d", i ? " | " : "", node->keys[i].key);
+	}
+	printf("} ");
+	if (!node->leaf) {
+		printf("| {");
+		for (i = 0; i < node->nr_of_keys + 1; i++) {
+			printf("%s<n%d>%d", i ? " | " : "", i, node->branch[i]);
+		}
+		printf("}}\"\n];\n");
+		for (i = 0; i < node->nr_of_keys + 1; i++) {
+			printf("\"IDX%d\":n%d->\"IDX%d\";\n", node->idx, i, node->branch[i]);
+		}
+		for (i = 0; i < node->nr_of_keys + 1; i++) {
+			btree_dump_node_dot(t, btree_get_node(t, node->branch[i]));
+		}
+	} else {
+		printf("}\"\n];\n");
+	}
+}
+
+void btree_dump_dot(btree_tree *t)
+{
+	printf("digraph g {\ngraph [ rankdir = \"TB\" ];\nnode [ fontsize = \"16\" shape = \"record\" ];\n");
+	btree_dump_node_dot(t, t->root);
+	printf("}\n");
+}
+
+
 void btree_dump(btree_tree *t)
 {
 	btree_dump_node(t, t->root);
