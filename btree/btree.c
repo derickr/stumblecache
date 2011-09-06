@@ -19,7 +19,7 @@ static void btree_allocate(char *path, uint32_t order, uint32_t nr_of_items, uin
 	char buffer[4096];
 	int written = 0;
 
-	bytes = BTREE_HEADER_SIZE + ((nr_of_items / (order * 2)) * sizeof(btree_node)) + (nr_of_items * data_size);
+	bytes = BTREE_HEADER_SIZE + ((nr_of_items / order) * sizeof(btree_node)) + (nr_of_items * data_size);
 
 	fd = open(path, O_CREAT | O_RDWR, S_IRUSR | S_IWUSR);
 
@@ -71,6 +71,9 @@ btree_tree *btree_create(char *path, uint32_t order, uint32_t nr_of_items, uint3
 	btree_tree *tmp_tree;
 	btree_node *tmp_node;
 
+	if (order > BTREE_MAX_ORDER) {
+		order = BTREE_MAX_ORDER;
+	}
 	btree_allocate(path, order, nr_of_items, data_size);
 
 	tmp_tree = btree_open(path);
@@ -211,14 +214,14 @@ void btree_dump_node(btree_tree *t, btree_node *node)
 {
 	int i;
 
-	printf("\nIDX: %d\n   ", node->idx);
+	printf("\nIDX: %d\n", node->idx);
 	for (i = 0; i < node->nr_of_keys; i++) {
-		printf("%4d ", node->keys[i].key);
+		printf("%9d ", node->keys[i].key);
 	}
 	if (!node->leaf) {
 		printf("\n");
 		for (i = 0; i < node->nr_of_keys + 1; i++) {
-			printf("%4d ", node->branch[i]);
+			printf("%9d ", node->branch[i]);
 		}
 		for (i = 0; i < node->nr_of_keys + 1; i++) {
 			btree_dump_node(t, btree_get_node(t, node->branch[i]));

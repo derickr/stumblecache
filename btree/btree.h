@@ -1,4 +1,5 @@
 #define BTREE_HEADER_SIZE 4096
+#define BTREE_MAX_ORDER       102
 #define BTREE_T(t)            (t->header->order)
 #define BTREE_T2(t)           (2 * t->header->order)
 
@@ -12,8 +13,8 @@ typedef struct {
 
 typedef struct {
 	uint32_t      idx;        /* the node's index into the data store */
-	uint32_t      branch[204];
-	btree_key     keys[203];
+	uint32_t      branch[BTREE_MAX_ORDER * 2];
+	btree_key     keys[BTREE_MAX_ORDER * 2 - 1];
 	uint16_t      nr_of_keys; /* number of keys in use */
 	char          leaf;       /* whether it's a leaf node or not */
 } btree_node; /* 204*4 + 203*16 + 1 + 2 = 4067, which fits nicely in a page */
