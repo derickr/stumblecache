@@ -45,23 +45,29 @@ btree_node *btree_allocate_node(btree_tree *t)
 	return tmp_node;
 }
 
-btree_tree *btree_open(char *path)
+static void btree_open_file(btree_tree *t, char *path)
 {
 	int fd;
 	void *memory;
-	btree_tree *t;
 	struct stat fileinfo;
 
 	stat(path, &fileinfo);
 	fd = open(path, O_RDWR);
-	memory = mmap(NULL, fileinfo.st_size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+	t->fd = fd;
+	t->mmap = mmap(NULL, fileinfo.st_size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+	t->header = (btree_header*) t->mmap;
+	t->nodes = t->mmap + BTREE_HEADER_SIZE;
+	t->root = btree_get_node(t, t->header->root_node_idx);
+}
+
+btree_tree *btree_open(char *path)
+{
+	btree_tree *t;
+	void *memory;
 
 	t = malloc(sizeof(btree_tree));
-	t->fd = fd;
-	t->mmap = memory;
-	t->header = (btree_header*) t->mmap;
-	t->nodes  = t->mmap + BTREE_HEADER_SIZE;
-	t->root   = btree_get_node(t, t->header->root_node_idx);
+	btree_open_file(t, path);
+	t->data = t->mmap + BTREE_HEADER_SIZE + ((t->header->max_items / t->header->order) * sizeof(btree_node));
 
 	return t;
 }
@@ -76,14 +82,16 @@ btree_tree *btree_create(char *path, uint32_t order, uint32_t nr_of_items, uint3
 	}
 	btree_allocate(path, order, nr_of_items, data_size);
 
-	tmp_tree = btree_open(path);
+	tmp_tree = malloc(sizeof(btree_tree));
+	btree_open_file(tmp_tree, path);
 
 	tmp_tree->header->version = 1;
 	tmp_tree->header->order = order;
 	tmp_tree->header->max_items = nr_of_items;
 	tmp_tree->header->item_size = data_size;
 	tmp_tree->header->next_node_idx = 0;
-	tmp_tree->header->next_idx = 0;
+	tmp_tree->header->next_data_idx = 0;
+	tmp_tree->data = tmp_tree->mmap + BTREE_HEADER_SIZE + ((tmp_tree->header->max_items / tmp_tree->header->order) * sizeof(btree_node));
 
 	tmp_node = btree_allocate_node(tmp_tree);
 	tmp_node->leaf = 1;
