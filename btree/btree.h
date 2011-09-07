@@ -12,6 +12,7 @@ typedef struct {
 } btree_key; /* 16 bytes */
 
 typedef struct {
+	char          marker[4];
 	uint32_t      idx;        /* the node's index into the data store */
 	uint32_t      branch[BTREE_MAX_ORDER * 2];
 	btree_key     keys[BTREE_MAX_ORDER * 2 - 1];
@@ -24,8 +25,9 @@ typedef struct {
 	uint32_t order;
 	uint32_t max_items;
 	uint32_t item_size;
+	uint32_t node_count;
 	uint32_t next_node_idx;
-	uint32_t next_idx;
+	uint32_t next_data_idx;
 	uint32_t root_node_idx;
 } btree_header;
 
@@ -42,7 +44,11 @@ btree_tree *btree_open(char *path);
 btree_tree *btree_create(char *path, uint32_t order, uint32_t nr_of_items, uint32_t data_size);
 void btree_free(btree_tree *t);
 
+void *btree_get_data(btree_tree *t, uint32_t idx, int32_t *data_size);
+int btree_set_data(btree_tree *t, uint32_t idx, void *data, int32_t data_size);
+
 int btree_search(btree_tree *t, btree_node *node, uint64_t key, uint32_t *idx);
-int btree_insert(btree_tree *t, uint64_t key, uint32_t *data_idx);
-void btree_dump_node(btree_tree *t, btree_node *node);
+void btree_insert(btree_tree *t, uint64_t key, uint32_t *data_idx);
+int btree_safe_insert(btree_tree *t, uint64_t key, uint32_t *data_idx);
 void btree_dump(btree_tree *t);
+void btree_dump_dot(btree_tree *t);

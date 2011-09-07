@@ -6,46 +6,54 @@
 #include <string.h>
 #include <sys/mman.h>
 #include <stdlib.h>
+#include <errno.h>
 
 btree_node *btree_get_node(btree_tree *t, uint32_t idx)
 {
 	return (btree_node*) (t->nodes + (idx * 4096));
 }
 
-static void btree_allocate(char *path, uint32_t order, uint32_t nr_of_items, uint32_t data_size)
+static int btree_allocate(char *path, uint32_t order, uint32_t nr_of_items, uint32_t data_size)
 {
 	int fd;
 	int64_t bytes;
 	char buffer[4096];
 	int written = 0;
+	signed int written_now = 0;
 
-	bytes = BTREE_HEADER_SIZE + ((nr_of_items / order) * sizeof(btree_node)) + (nr_of_items * data_size);
+	bytes = BTREE_HEADER_SIZE + ((nr_of_items / order) * 4096) + (nr_of_items * data_size);
 
 	fd = open(path, O_CREAT | O_RDWR, S_IRUSR | S_IWUSR);
 
 	memset(buffer, 0, 4096);
 	/* FIXME: Check for signals */
 	while (written < bytes) {
-		write(fd, buffer, 4096);
-		written += 4096;
+		if ((written_now = write(fd, buffer, 4096)) != -1) {
+			written += written_now;
+		} else {
+			goto cleanup;
+		}
 	}
 	close(fd);
+	return 1;
+cleanup:
+	close(fd);
+	unlink(path);
+	return 0;
 }
 
 btree_node *btree_allocate_node(btree_tree *t)
 {
 	btree_node *tmp_node;
 
-	/* LOCK */
 	tmp_node = t->nodes + (t->header->next_node_idx * 4096);
 	tmp_node->idx = t->header->next_node_idx;
 	t->header->next_node_idx++;
-	/* UNLOCK */
 
 	return tmp_node;
 }
 
-static void btree_open_file(btree_tree *t, char *path)
+static int btree_open_file(btree_tree *t, char *path)
 {
 	int fd;
 	void *memory;
@@ -53,11 +61,15 @@ static void btree_open_file(btree_tree *t, char *path)
 
 	stat(path, &fileinfo);
 	fd = open(path, O_RDWR);
+	if (fd == -1) {
+		return errno;
+	}
 	t->fd = fd;
 	t->mmap = mmap(NULL, fileinfo.st_size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
 	t->header = (btree_header*) t->mmap;
 	t->nodes = t->mmap + BTREE_HEADER_SIZE;
 	t->root = btree_get_node(t, t->header->root_node_idx);
+	return 0;
 }
 
 btree_tree *btree_open(char *path)
@@ -66,8 +78,10 @@ btree_tree *btree_open(char *path)
 	void *memory;
 
 	t = malloc(sizeof(btree_tree));
-	btree_open_file(t, path);
-	t->data = t->mmap + BTREE_HEADER_SIZE + ((t->header->max_items / t->header->order) * sizeof(btree_node));
+	if (btree_open_file(t, path) != 0) {
+		return NULL;
+	}
+	t->data = t->mmap + BTREE_HEADER_SIZE + (t->header->node_count * 4096);
 
 	return t;
 }
@@ -83,7 +97,10 @@ btree_tree *btree_create(char *path, uint32_t order, uint32_t nr_of_items, uint3
 	btree_allocate(path, order, nr_of_items, data_size);
 
 	tmp_tree = malloc(sizeof(btree_tree));
-	btree_open_file(tmp_tree, path);
+	if (btree_open_file(tmp_tree, path) != 0) {
+		free(tmp_tree);
+		return NULL;
+	}
 
 	tmp_tree->header->version = 1;
 	tmp_tree->header->order = order;
@@ -91,7 +108,8 @@ btree_tree *btree_create(char *path, uint32_t order, uint32_t nr_of_items, uint3
 	tmp_tree->header->item_size = data_size;
 	tmp_tree->header->next_node_idx = 0;
 	tmp_tree->header->next_data_idx = 0;
-	tmp_tree->data = tmp_tree->mmap + BTREE_HEADER_SIZE + ((tmp_tree->header->max_items / tmp_tree->header->order) * sizeof(btree_node));
+	tmp_tree->header->node_count = (tmp_tree->header->max_items / tmp_tree->header->order) + 1;
+	tmp_tree->data = tmp_tree->mmap + BTREE_HEADER_SIZE + (tmp_tree->header->node_count * 4096);
 
 	tmp_node = btree_allocate_node(tmp_tree);
 	tmp_node->leaf = 1;
@@ -110,6 +128,28 @@ void btree_free(btree_tree *t)
 
 int btree_set_node(btree_node *node)
 {
+}
+
+void *btree_get_data(btree_tree *t, uint32_t idx, int32_t *data_size)
+{
+	void *location;
+
+	location = t->data + (idx * t->header->item_size);
+	*data_size = ((int32_t*)location)[0];
+	return location + sizeof(int32_t);
+}
+
+int btree_set_data(btree_tree *t, uint32_t idx, void *data, int32_t data_size)
+{
+	void *location;
+
+	if (data_size > t->header->item_size) {
+		return -1;
+	}
+	location = t->data + (idx * t->header->item_size);
+	((int32_t*)location)[0] = data_size;
+	memcpy(location + sizeof(int32_t), data, data_size);
+
 }
 
 int btree_search(btree_tree *t, btree_node *node, uint64_t key, uint32_t *idx)
@@ -172,9 +212,45 @@ btree_split_child(btree_tree *t, btree_node *parent, uint32_t key_nr, btree_node
 	btree_set_node(child);
 }
 
-btree_insert(btree_tree *t, uint64_t key, uint32_t *data_idx)
+static void btree_insert_non_full(btree_tree *t, btree_node *node, uint64_t key, uint32_t *data_idx)
+{
+	uint32_t i;
+	btree_node *tmp_node;
+
+	i = node->nr_of_keys;
+	if (node->leaf) {
+		while (i > 0 && key < node->keys[i - 1].key) {
+			node->keys[i] = node->keys[i - 1];
+			i--;
+		}
+		node->keys[i].key = key;
+		node->nr_of_keys++;
+
+		/* Fetch data index, and set it to the idx element here too */
+		if (data_idx) {
+			node->keys[i].idx = t->header->next_data_idx;
+			*data_idx = node->keys[i].idx;
+		}
+		t->header->next_data_idx++;
+	} else {
+		while (i > 0 && key < node->keys[i - 1].key) {
+			i--;
+		}
+		tmp_node = btree_get_node(t, node->branch[i]);
+		if (tmp_node->nr_of_keys == BTREE_T2(t) - 1) {
+			btree_split_child(t, node, i, tmp_node);
+			if (key > node->keys[i].key) {
+				i++;
+			}
+		}
+		btree_insert_non_full(t, btree_get_node(t, node->branch[i]), key, data_idx);
+	}
+}
+
+void btree_insert(btree_tree *t, uint64_t key, uint32_t *data_idx)
 {
 	btree_node *r = t->root;
+
 	if (r->nr_of_keys == BTREE_T2(t) - 1) {
 		btree_node *tmp_node;
 
@@ -191,36 +267,18 @@ btree_insert(btree_tree *t, uint64_t key, uint32_t *data_idx)
 	}
 }
 
-btree_insert_non_full(btree_tree *t, btree_node *node, uint64_t key, uint32_t *data_idx)
+int btree_safe_insert(btree_tree *t, uint64_t key, uint32_t *data_idx)
 {
-	uint32_t i;
-	btree_node *tmp_node;
+	btree_node *r = t->root;
 
-	i = node->nr_of_keys;
-	if (node->leaf) {
-		while (i > 0 && key < node->keys[i - 1].key) {
-			node->keys[i] = node->keys[i - 1];
-			i--;
-		}
-		node->keys[i].key = key;
-		/* Fetch data index, and set it to the idx element here too */
-		node->nr_of_keys++;
-	} else {
-		while (i > 0 && key < node->keys[i - 1].key) {
-			i--;
-		}
-		tmp_node = btree_get_node(t, node->branch[i]);
-		if (tmp_node->nr_of_keys == BTREE_T2(t) - 1) {
-			btree_split_child(t, node, i, tmp_node);
-			if (key > node->keys[i].key) {
-				i++;
-			}
-		}
-		btree_insert_non_full(t, btree_get_node(t, node->branch[i]), key, data_idx);
+	if (btree_search(t, r, key, NULL)) {
+		return 0;
 	}
+	btree_insert(t, key, data_idx);
+	return 1;
 }
 
-void btree_dump_node(btree_tree *t, btree_node *node)
+static void btree_dump_node(btree_tree *t, btree_node *node)
 {
 	int i;
 
@@ -239,7 +297,7 @@ void btree_dump_node(btree_tree *t, btree_node *node)
 	}
 }
 
-void btree_dump_node_dot(btree_tree *t, btree_node *node)
+static void btree_dump_node_dot(btree_tree *t, btree_node *node)
 {
 	int i;
 
