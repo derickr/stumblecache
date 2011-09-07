@@ -11,6 +11,10 @@ int main(int argc, char *argv[])
 	uint32_t idx, data_size;
 
 	tmp = btree_open("test.mmap");
+	if (!tmp) {
+		printf("Couldn't create tree from disk image.\n");
+		exit(1);
+	}
 
 	id = atoll(argv[1]);
 	found += btree_search(tmp, tmp->root, id, &idx);

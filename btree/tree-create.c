@@ -10,6 +10,10 @@ int main(void)
 	memset(data+1023, 0, 1);
 
 	tmp = btree_create("test.mmap", 3, 400, 1024);
+	if (!tmp) {
+		printf("Couldn't create tree from disk image.\n");
+		exit(1);
+	}
 	btree_insert(tmp, 'A', &data_idx); printf("%llu\n", data_idx);
 	btree_insert(tmp, 'L', &data_idx); printf("%llu\n", data_idx);
 	memcpy(tmp->data + data_idx * 1024, data, 1024);

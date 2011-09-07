@@ -11,6 +11,10 @@ int main(int argc, char *argv[])
 	uint32_t idx;
 
 	tmp = btree_open("test.mmap");
+	if (!tmp) {
+		printf("Couldn't create tree from disk image.\n");
+		exit(1);
+	}
 
 	f = fopen(argv[1], "r");
 	while (!feof(f)) {
