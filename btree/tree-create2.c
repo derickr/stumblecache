@@ -1,5 +1,7 @@
 #include "btree.h"
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 int main(int argc, char *argv[])
 {
@@ -12,6 +14,10 @@ int main(int argc, char *argv[])
 
 	cnt = atoll(argv[2]);
 	tmp = btree_create("test.mmap", 128, 700000, 2048);
+	if (!tmp) {
+		printf("Couldn't create tree from disk image.\n");
+		exit(1);
+	}
 
 	f = fopen(argv[1], "r");
 	while (!feof(f)) {
