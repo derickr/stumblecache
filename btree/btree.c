@@ -120,7 +120,9 @@ int btree_search(btree_tree *t, btree_node *node, uint64_t key, uint32_t *idx)
 	}
 
 	if (i < node->nr_of_keys && key == node->keys[i].key) {
-		*idx = node->keys[i].idx;
+		if (idx) {
+			*idx = node->keys[i].idx;
+		}
 		return 1;
 	}
 
