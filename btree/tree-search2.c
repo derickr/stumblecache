@@ -1,5 +1,7 @@
 #include "btree.h"
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 int main(int argc, char *argv[])
 {
@@ -29,7 +31,9 @@ int main(int argc, char *argv[])
 			i++;
 		}
 	}
-	printf("%d %d\n", found, i);
+	printf("%lu %lu\n", found, i);
 
 	btree_free(tmp);
+
+	return 0;
 }

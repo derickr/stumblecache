@@ -34,4 +34,6 @@ int main(int argc, char *argv[])
 	}
 
 	btree_free(tmp);
+
+	return 0;
 }
