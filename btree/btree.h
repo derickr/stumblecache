@@ -43,5 +43,6 @@ btree_tree *btree_create(char *path, uint32_t order, uint32_t nr_of_items, uint3
 void btree_free(btree_tree *t);
 
 int btree_search(btree_tree *t, btree_node *node, uint64_t key, uint32_t *idx);
+int btree_insert(btree_tree *t, uint64_t key, uint32_t *data_idx);
 void btree_dump_node(btree_tree *t, btree_node *node);
 void btree_dump(btree_tree *t);
