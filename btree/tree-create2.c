@@ -9,10 +9,9 @@ int main(int argc, char *argv[])
 	FILE *f;
 	char urlBuffer[2048], *data;
 	uint64_t id;
-	uint64_t i = 0,cnt;
+	uint64_t i = 0;
 	uint32_t data_idx;
 
-	cnt = atoll(argv[2]);
 	tmp = btree_create("test.mmap", 128, 700000, 2048);
 	if (!tmp) {
 		printf("Couldn't create tree from disk image.\n");
