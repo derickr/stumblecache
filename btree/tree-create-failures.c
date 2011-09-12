@@ -8,7 +8,7 @@ int main(void)
 	btree_tree *tmp;
 	uint32_t data_idx, size;
 
-	// testing too many nodes
+	// testing too large data
 	tmp = btree_create("test.mmap", 3, 6, 10);
 	if (!tmp) {
 		printf("Couldn't create tree from disk image.\n");
@@ -23,7 +23,7 @@ int main(void)
 	printf("%s %d\n", (char*) btree_get_data(tmp, data_idx, &size), size);
 
 	btree_insert(tmp, 'D', &data_idx);
-	btree_set_data(tmp, data_idx, "HelloWorl3", 10);
+	btree_set_data(tmp, data_idx, "HelloWorld3", 11);
 	printf("%s %d\n", (char*) btree_get_data(tmp, data_idx, &size), size);
 
 	btree_insert(tmp, 'X', &data_idx);
