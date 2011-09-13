@@ -250,7 +250,7 @@ static void btree_insert_non_full(btree_tree *t, btree_node *node, uint64_t key,
 	}
 }
 
-void btree_insert(btree_tree *t, uint64_t key, uint32_t *data_idx)
+static void btree_insert_internal(btree_tree *t, uint64_t key, uint32_t *data_idx)
 {
 	btree_node *r = t->root;
 
@@ -270,7 +270,7 @@ void btree_insert(btree_tree *t, uint64_t key, uint32_t *data_idx)
 	}
 }
 
-int btree_safe_insert(btree_tree *t, uint64_t key, uint32_t *data_idx)
+int btree_insert(btree_tree *t, uint64_t key, uint32_t *data_idx)
 {
 	btree_node *r = t->root;
 
@@ -280,7 +280,7 @@ int btree_safe_insert(btree_tree *t, uint64_t key, uint32_t *data_idx)
 	if (btree_search(t, r, key, NULL)) {
 		return 0;
 	}
-	btree_insert(t, key, data_idx);
+	btree_insert_internal(t, key, data_idx);
 	return 1;
 }
 

@@ -26,7 +26,7 @@ int main(int argc, char *argv[])
 			data++;
 			data[-1] = '\0';
 			id = atoll(urlBuffer);
-			if (btree_safe_insert(tmp, id, &data_idx) == 1) {
+			if (btree_insert(tmp, id, &data_idx) == 1) {
 				btree_set_data(tmp, data_idx, data, strlen(data));
 			}
 		}
