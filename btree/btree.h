@@ -25,6 +25,7 @@ typedef struct {
 	uint32_t version;
 	uint32_t order;
 	uint32_t max_items;
+	uint32_t item_count;
 	uint32_t item_size;
 	uint32_t node_count;
 	uint32_t next_node_idx;

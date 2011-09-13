@@ -231,7 +231,10 @@ static void btree_insert_non_full(btree_tree *t, btree_node *node, uint64_t key,
 			node->keys[i].idx = t->header->next_data_idx;
 			*data_idx = node->keys[i].idx;
 		}
+
+		/* Do administrative jobs */
 		t->header->next_data_idx++;
+		t->header->item_count++;
 	} else {
 		while (i > 0 && key < node->keys[i - 1].key) {
 			i--;
@@ -271,6 +274,9 @@ int btree_safe_insert(btree_tree *t, uint64_t key, uint32_t *data_idx)
 {
 	btree_node *r = t->root;
 
+	if (t->header->item_count >= t->header->max_items) {
+		return 0;
+	}
 	if (btree_search(t, r, key, NULL)) {
 		return 0;
 	}
