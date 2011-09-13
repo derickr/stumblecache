@@ -7,6 +7,7 @@ int main(void)
 {
 	btree_tree *tmp;
 	uint32_t data_idx, size;
+	char *data;
 
 	// testing too large data
 	tmp = btree_create("test.mmap", 3, 6, 10);
@@ -14,31 +15,27 @@ int main(void)
 		printf("Couldn't create tree from disk image.\n");
 		exit(1);
 	}
-	btree_insert(tmp, 'A', &data_idx);
+	btree_insert(tmp, 'X', &data_idx);
 	btree_set_data(tmp, data_idx, "HelloWorl1", 10);
-	printf("%s %d\n", (char*) btree_get_data(tmp, data_idx, &size), size);
+	data = (char*) btree_get_data(tmp, data_idx, &size);
+	printf("%s %d\n", data, size);
 
-	btree_insert(tmp, 'L', &data_idx);
-	btree_set_data(tmp, data_idx, "HelloWorl2", 10);
-	printf("%s %d\n", (char*) btree_get_data(tmp, data_idx, &size), size);
+	btree_insert(tmp, 'Q', &data_idx);
+	btree_set_data(tmp, data_idx, "HelloWorld2", 10);
+	data = (char*) btree_get_data(tmp, data_idx, &size);
+	printf("%s %d\n", data, size);
 
 	btree_insert(tmp, 'D', &data_idx);
 	btree_set_data(tmp, data_idx, "HelloWorld3", 11);
-	printf("%s %d\n", (char*) btree_get_data(tmp, data_idx, &size), size);
+	data = (char*) btree_get_data(tmp, data_idx, &size);
+	printf("%s %d\n", data, size);
 
 	btree_insert(tmp, 'X', &data_idx);
-	btree_set_data(tmp, data_idx, "HelloWorl4", 10);
-	printf("%s %d\n", (char*) btree_get_data(tmp, data_idx, &size), size);
+	btree_set_data(tmp, data_idx, "HelloWorld", 11);
+	data = (char*) btree_get_data(tmp, data_idx, &size);
+	printf("%s %d\n", data, size);
 
-	btree_insert(tmp, 'R', &data_idx);
-	btree_set_data(tmp, data_idx, "HelloWorl5", 10);
-	printf("%s %d\n", (char*) btree_get_data(tmp, data_idx, &size), size);
-
-	btree_insert(tmp, 'T', &data_idx);
-	btree_set_data(tmp, data_idx, "HelloWorl6", 10);
-	printf("%s %d\n", (char*) btree_get_data(tmp, data_idx, &size), size);
-
-	btree_dump_dot(tmp);
+	btree_dump(tmp);
 	btree_free(tmp);
 
 	return 0;
