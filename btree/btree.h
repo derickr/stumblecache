@@ -14,11 +14,12 @@ typedef struct {
 typedef struct {
 	char          marker[4];
 	uint32_t      idx;        /* the node's index into the data store */
-	uint32_t      branch[BTREE_MAX_ORDER * 2];
-	btree_key     keys[BTREE_MAX_ORDER * 2 - 1];
 	uint16_t      nr_of_keys; /* number of keys in use */
 	char          leaf;       /* whether it's a leaf node or not */
-} btree_node; /* 204*4 + 203*16 + 1 + 2 = 4067, which fits nicely in a page */
+	char          dummy[1];
+	btree_key     keys[BTREE_MAX_ORDER * 2 - 1];
+	uint32_t      branch[BTREE_MAX_ORDER * 2];
+} btree_node; /* 4 + 4 + 2 + 1 + 1 + 203*16 + 204*4 = 4076, which fits nicely in a page */
 
 typedef struct {
 	uint32_t version;
