@@ -54,12 +54,9 @@ btree_node *btree_allocate_node(btree_tree *t)
 	btree_node *tmp_node;
 
 	tmp_node = t->nodes + (t->header->next_node_idx * 4096);
-/* Don't need this, but it's good for debugging
+
 	tmp_node->marker[0] = 'N';
-	tmp_node->marker[1] = 'o';
-	tmp_node->marker[2] = 'D';
-	tmp_node->marker[3] = 'e';
-*/
+
 	tmp_node->idx = t->header->next_node_idx;
 	t->header->next_node_idx++;
 
