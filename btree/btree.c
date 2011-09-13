@@ -142,7 +142,7 @@ void *btree_get_data(btree_tree *t, uint32_t idx, uint32_t *data_size)
 	return location + sizeof(int32_t);
 }
 
-int btree_set_data(btree_tree *t, uint32_t idx, void *data, int32_t data_size)
+int btree_set_data(btree_tree *t, uint32_t idx, void *data, uint32_t data_size)
 {
 	void *location;
 

@@ -30,8 +30,18 @@ int main(void)
 	data = (char*) btree_get_data(tmp, data_idx, &size);
 	printf("%s %d\n", data, size);
 
-	btree_insert(tmp, 'X', &data_idx);
-	btree_set_data(tmp, data_idx, "HelloWorld", 11);
+	btree_insert(tmp, 'Z', &data_idx);
+	btree_set_data(tmp, data_idx, "HelloWorl4", 11);
+	data = (char*) btree_get_data(tmp, data_idx, &size);
+	printf("%s %d\n", data, size);
+
+	btree_insert(tmp, 'A', &data_idx);
+	btree_set_data(tmp, data_idx, "HelloWorl5", -1);
+	data = (char*) btree_get_data(tmp, data_idx, &size);
+	printf("%s %d\n", data, size);
+
+	btree_insert(tmp, 'A', &data_idx);
+	btree_set_data(tmp, data_idx, "HelloWorl6", 0);
 	data = (char*) btree_get_data(tmp, data_idx, &size);
 	printf("%s %d\n", data, size);
 
