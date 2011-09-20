@@ -284,14 +284,23 @@ int btree_insert(btree_tree *t, uint64_t key, uint32_t *data_idx)
 	return 1;
 }
 
-static unsigned int btree_check_key_in_node(btree_node *node, uint64_t key, uint32_t *node_idx)
+static btree_node *btree_find_greatest(btree_tree *t, btree_node *node)
+{
+	btree_node *ptr = node;
+	while (!ptr->leaf) {
+		ptr = btree_get_node(t, ptr->branch[ptr->nr_of_keys]);
+	}
+	return ptr;
+}
+
+static unsigned int btree_check_key_in_node(btree_node *node, uint64_t key, uint32_t *idx)
 {
 	int i = 0;
 	while (i < node->nr_of_keys && key > node->keys[i].key) {
 		i++;
 	}
 	if (i < node->nr_of_keys && key == node->keys[i].key) {
-		*node_idx = i;
+		*idx = i;
 		return 1;
 	}
 	return 0;
@@ -300,15 +309,15 @@ static unsigned int btree_check_key_in_node(btree_node *node, uint64_t key, uint
 /**
  * Removes the key/branch with index "node_idx" and shifts all other keys and branches.
  */
-static void btree_delete_key_idx_from_node(btree_node *node, uint64_t node_idx)
+static void btree_delete_key_idx_from_node(btree_node *node, uint64_t idx)
 {
 	int i;
 
-	for (i = node_idx; i < node->nr_of_keys - 1; i++) {
+	for (i = idx; i < node->nr_of_keys - 1; i++) {
 		node->keys[i] = node->keys[i + 1];
 	}
 	if (!node->leaf) {
-		for (i = node_idx; i < node->nr_of_keys; i++) {
+		for (i = idx; i < node->nr_of_keys; i++) {
 			node->branch[i] = node->branch[i + 1];
 		}
 	}
@@ -317,7 +326,7 @@ static void btree_delete_key_idx_from_node(btree_node *node, uint64_t node_idx)
 
 static int btree_delete_internal(btree_tree *t, btree_node *node, uint64_t key)
 {
-	uint32_t node_idx;
+	uint32_t idx;
 
 	/* if x is a leaf then
 	 *   if k is in x then
@@ -325,13 +334,43 @@ static int btree_delete_internal(btree_tree *t, btree_node *node, uint64_t key)
 	 *   else return false //k is not in subtree
 	 */
 	if (node->leaf) {
-		if (btree_check_key_in_node(node, key, &node_idx)) {
-			btree_delete_key_idx_from_node(node, node_idx);
+		if (btree_check_key_in_node(node, key, &idx)) {
+			btree_delete_key_idx_from_node(node, idx);
 			return 1;
 		} else {
 			return 0;
 		}
 	} else {
+		/* if k is in x then */
+		if (btree_check_key_in_node(node, key, &idx)) {
+			btree_node *y, *node_with_prev_key;
+			/*   y = the child of x that precedes k
+			 *   if y has at least t keys then
+			 *     k' = the predecessor of k (use B-Tree-FindLargest)
+			 *     Copy k' over k //i.e., replace k with k'
+			 *     B-Tree-Delete(y, k') //Note: recursive call
+			 */
+			y = btree_get_node(t, node->branch[idx]);
+			if (y->nr_of_keys >= BTREE_T(t)) {
+				node_with_prev_key = btree_find_greatest(t, y);
+				node->keys[idx] = node_with_prev_key->keys[y->nr_of_keys-1];
+				node->branch[idx] = node_with_prev_key->branch[y->nr_of_keys-1];
+				btree_delete_internal(t, y, node_with_prev_key->keys[y->nr_of_keys-1].key);
+			} else {
+			/*   else //y has t-1 keys
+			 *     z = the child of x that follows k
+			 *     if z has at least t keys then
+			 *       k' = the successor of k
+			 *       Copy k' over k //i.e., replace k with k'
+			 *       B-Tree-Delete(z, k') //Note: recursive call
+			 *     else //both y and z have t-1 keys
+			 *       merge k and all of z into y //y now contains 2t-1 keys.
+			 *       //k and the pointer to z will be deleted from x.
+			 *       B-Tree-Delete(y, k) //Note: recursive call
+			 */
+			}
+		} else {
+		}
 	}
 	return 0;
 }
