@@ -28,3 +28,14 @@ modules/
 run-tests.php
 *.la
 *.lo
+btree/test-programs/test.mmap
+btree/test-programs/tree-create
+btree/test-programs/tree-create-failures
+btree/test-programs/tree-create-failures2
+btree/test-programs/tree-create2
+btree/test-programs/tree-search
+btree/test-programs/tree-search2
+btree/test-programs/tree-search3
+btree/test-programs/url-ids.txt
+btree/test-programs/url-ids2.txt
+btree/test-programs/urls.data.txt
