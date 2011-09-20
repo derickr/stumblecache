@@ -284,6 +284,66 @@ int btree_insert(btree_tree *t, uint64_t key, uint32_t *data_idx)
 	return 1;
 }
 
+static unsigned int btree_check_key_in_node(btree_node *node, uint64_t key, uint32_t *node_idx)
+{
+	int i = 0;
+	while (i < node->nr_of_keys && key > node->keys[i].key) {
+		i++;
+	}
+	if (i < node->nr_of_keys && key == node->keys[i].key) {
+		*node_idx = i;
+		return 1;
+	}
+	return 0;
+}
+
+/**
+ * Removes the key/branch with index "node_idx" and shifts all other keys and branches.
+ */
+static void btree_delete_key_idx_from_node(btree_node *node, uint64_t node_idx)
+{
+	int i;
+
+	for (i = node_idx; i < node->nr_of_keys - 1; i++) {
+		node->keys[i] = node->keys[i + 1];
+	}
+	if (!node->leaf) {
+		for (i = node_idx; i < node->nr_of_keys; i++) {
+			node->branch[i] = node->branch[i + 1];
+		}
+	}
+	node->nr_of_keys--;
+}
+
+static int btree_delete_internal(btree_tree *t, btree_node *node, uint64_t key)
+{
+	uint32_t node_idx;
+
+	/* if x is a leaf then
+	 *   if k is in x then
+	 *     delete k from x and return true
+	 *   else return false //k is not in subtree
+	 */
+	if (node->leaf) {
+		if (btree_check_key_in_node(node, key, &node_idx)) {
+			btree_delete_key_idx_from_node(node, node_idx);
+			return 1;
+		} else {
+			return 0;
+		}
+	} else {
+	}
+	return 0;
+}
+
+int btree_delete(btree_tree *t, uint64_t key)
+{
+	btree_node *n = t->root;
+
+	btree_delete_internal(t, n, key);
+	return 1;
+}
+
 static void btree_dump_node(btree_tree *t, btree_node *node)
 {
 	int i;
