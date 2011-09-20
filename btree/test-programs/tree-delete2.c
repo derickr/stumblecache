@@ -31,6 +31,9 @@ int main(void)
 	btree_delete(tmp, 'F');
 	btree_dump(tmp);
 
+	/* Delete internal node (the root node in this case, but now the first child has less than N keys) */
+	btree_delete(tmp, 'E');
+	btree_dump(tmp);
 	btree_free(tmp);
 
 	return 0;
