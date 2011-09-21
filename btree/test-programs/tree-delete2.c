@@ -34,7 +34,6 @@ int main(void)
 	/* Delete internal node (the root node in this case, but now the previous child has less than N keys) */
 	btree_delete(tmp, 'E');
 	btree_dump(tmp);
-	btree_free(tmp);
 
 	/* Delete internal node (the root node in this case, but nowpreviousfirst child and next child have less than N keys) */
 	btree_delete(tmp, 'P');
