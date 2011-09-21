@@ -316,7 +316,7 @@ static unsigned int btree_check_key_in_node(btree_node *node, uint64_t key, uint
 }
 
 /**
- * Removes the key/branch with index "node_idx" and shifts all other keys and branches.
+ * Removes the key/branch with index "node_idx" and shifts all other keys
  */
 static void btree_delete_key_idx_from_node(btree_node *node, uint64_t idx)
 {
@@ -325,12 +325,31 @@ static void btree_delete_key_idx_from_node(btree_node *node, uint64_t idx)
 	for (i = idx; i < node->nr_of_keys - 1; i++) {
 		node->keys[i] = node->keys[i + 1];
 	}
+	node->nr_of_keys--;
+}
+
+static void btree_delete_branch_idx_from_node(btree_node *node, uint64_t idx)
+{
+	int i;
+
 	if (!node->leaf) {
 		for (i = idx; i < node->nr_of_keys; i++) {
 			node->branch[i] = node->branch[i + 1];
 		}
 	}
-	node->nr_of_keys--;
+}
+
+static void btree_merge(btree_tree *t, btree_node *a, btree_node *x, uint32_t idx, btree_node *b)
+{
+	int i = a->nr_of_keys, j;
+
+	a->keys[i] = x->keys[idx];
+	a->nr_of_keys++;
+	for (j = 0; j < b->nr_of_keys; j++) {
+		i++;
+		a->keys[i] = b->keys[j];
+	}
+	a->nr_of_keys += b->nr_of_keys;
 }
 
 static int btree_delete_internal(btree_tree *t, btree_node *node, uint64_t key)
@@ -345,6 +364,7 @@ static int btree_delete_internal(btree_tree *t, btree_node *node, uint64_t key)
 	if (node->leaf) {
 		if (btree_check_key_in_node(node, key, &idx)) {
 			btree_delete_key_idx_from_node(node, idx);
+			btree_delete_branch_idx_from_node(node, idx);
 			return 1;
 		} else {
 			return 0;
@@ -386,6 +406,13 @@ static int btree_delete_internal(btree_tree *t, btree_node *node, uint64_t key)
 			 *       //k and the pointer to z will be deleted from x.
 			 *       B-Tree-Delete(y, k) //Note: recursive call
 			 */
+					btree_merge(t, y, node, idx, z);
+					btree_delete_key_idx_from_node(node, idx);
+					btree_delete_branch_idx_from_node(node, idx + 1);
+					btree_delete_internal(t, y, key);
+					if (t->root->nr_of_keys == 0 && !t->root->leaf) {
+						t->root = btree_get_node(t, t->root->branch[0]);
+					}
 				}
 			}
 		} else {
