@@ -10,6 +10,7 @@
 #include <errno.h>
 
 /* Forwards declarations */
+static void btree_dump_node(btree_tree *t, btree_node *node);
 static btree_node* btree_find_branch(btree_tree *t, btree_node *node, uint64_t key, uint32_t *i);
 
 btree_node *btree_get_node(btree_tree *t, uint32_t idx)
@@ -425,6 +426,13 @@ static int btree_delete_internal(btree_tree *t, btree_node *node, uint64_t key)
 				}
 			}
 		} else {
+			btree_node *c;
+			uint32_t i;
+
+			c = btree_find_branch(t, node, key, &i);
+			if (c->nr_of_keys <= BTREE_T(t) - 1) {
+			}
+			btree_delete_internal(t, c, key);
 		}
 	}
 	return 0;
