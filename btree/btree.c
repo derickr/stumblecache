@@ -9,6 +9,9 @@
 #include <unistd.h>
 #include <errno.h>
 
+/* Forwards declarations */
+static btree_node* btree_find_branch(btree_tree *t, btree_node *node, uint64_t key, uint32_t *i);
+
 btree_node *btree_get_node(btree_tree *t, uint32_t idx)
 {
 	return (btree_node*) (t->nodes + (idx * 4096));
@@ -236,10 +239,7 @@ static void btree_insert_non_full(btree_tree *t, btree_node *node, uint64_t key,
 		t->header->next_data_idx++;
 		t->header->item_count++;
 	} else {
-		while (i > 0 && key < node->keys[i - 1].key) {
-			i--;
-		}
-		tmp_node = btree_get_node(t, node->branch[i]);
+		tmp_node = btree_find_branch(t, node, key, &i);
 		if (tmp_node->nr_of_keys == BTREE_T2(t) - 1) {
 			btree_split_child(t, node, i, tmp_node);
 			if (key > node->keys[i].key) {
@@ -248,6 +248,15 @@ static void btree_insert_non_full(btree_tree *t, btree_node *node, uint64_t key,
 		}
 		btree_insert_non_full(t, btree_get_node(t, node->branch[i]), key, data_idx);
 	}
+}
+
+static btree_node* btree_find_branch(btree_tree *t, btree_node *node, uint64_t key, uint32_t *i)
+{
+	*i = node->nr_of_keys;
+	while (*i > 0 && key < node->keys[(*i) - 1].key) {
+		(*i)--;
+	}
+	return btree_get_node(t, node->branch[*i]);
 }
 
 static void btree_insert_internal(btree_tree *t, uint64_t key, uint32_t *data_idx)
