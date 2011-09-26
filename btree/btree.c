@@ -362,6 +362,18 @@ static void btree_merge(btree_tree *t, btree_node *a, btree_node *x, uint32_t id
 	a->nr_of_keys += b->nr_of_keys;
 }
 
+static void btree_node_insert_key(btree_tree *t, btree_node *node, uint32_t pos, btree_key key)
+{
+	uint32_t i = node->nr_of_keys;
+
+	while (i > pos) {
+		node->keys[i] = node->keys[i-1];
+		i--;
+	}
+	node->keys[pos] = key;
+	node->nr_of_keys++;
+}
+
 static int btree_delete_internal(btree_tree *t, btree_node *node, uint64_t key)
 {
 	uint32_t idx;
@@ -431,7 +443,68 @@ static int btree_delete_internal(btree_tree *t, btree_node *node, uint64_t key)
 
 			c = btree_find_branch(t, node, key, &i);
 			if (c->nr_of_keys <= BTREE_T(t) - 1) {
+				btree_node *z, *node_with_prev_key, *node_with_next_key;
+				btree_key tmp_key;
+
+				/* Is there a left sibling with T or more keys? */
+				if (i > 0) { /* otherwise there is no left sibling */
+					z = btree_get_node(t, node->branch[i - 1]);
+					if (z->nr_of_keys > BTREE_T(t) - 1) {
+						node_with_prev_key = btree_find_greatest(t, z);
+						btree_node_insert_key(t, c, 0, node_with_prev_key->keys[z->nr_of_keys-1]);
+						btree_delete_internal(t, z, node_with_prev_key->keys[z->nr_of_keys-1].key);
+
+						/* Swap parent and first key in C */
+						tmp_key = node->keys[i-1];
+						node->keys[i-1] = c->keys[0];
+						c->keys[0] = tmp_key;
+						goto proceed;
+					}
+				}
+
+				/* Is there a left sibling with T or more keys? */
+				if (i < node->nr_of_keys) { /* otherwise there is no right sibling */
+					z = btree_get_node(t, node->branch[i + 1]);
+					if (z->nr_of_keys > BTREE_T(t) - 1) {
+						node_with_next_key = btree_find_smallest(t, z);
+						btree_node_insert_key(t, c, c->nr_of_keys, node_with_next_key->keys[0]);
+						btree_delete_internal(t, z, node_with_next_key->keys[0].key);
+
+						/* Swap parent and last key in C */
+						tmp_key = node->keys[i];
+						node->keys[i] = c->keys[c->nr_of_keys - 1];
+						c->keys[c->nr_of_keys - 1] = tmp_key;
+						goto proceed;
+					}
+				}
+
+				/* No siblings, so we need to merge. */
+				/* Is there a left sibling? */
+				if (i > 0) { /* otherwise there is no left sibling */
+					z = btree_get_node(t, node->branch[i - 1]);
+					btree_merge(t, z, node, i - 1, c);
+					btree_delete_key_idx_from_node(node, i - 1);
+					btree_delete_branch_idx_from_node(node, i);
+					btree_delete_internal(t, z, key);
+					if (t->root->nr_of_keys == 0 && !t->root->leaf) {
+						t->root = btree_get_node(t, t->root->branch[0]);
+					}
+					goto proceed;
+				}
+				/* Is there a right sibling? */
+				if (i < node->nr_of_keys) { /* otherwise there is no right sibling */
+					z = btree_get_node(t, node->branch[i + 1]);
+					btree_merge(t, c, node, i, z);
+					btree_delete_key_idx_from_node(node, i);
+					btree_delete_branch_idx_from_node(node, i + 1);
+					btree_delete_internal(t, z, key);
+					if (t->root->nr_of_keys == 0 && !t->root->leaf) {
+						t->root = btree_get_node(t, t->root->branch[0]);
+					}
+					goto proceed;
+				}
 			}
+proceed:
 			btree_delete_internal(t, c, key);
 		}
 	}
