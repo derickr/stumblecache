@@ -343,7 +343,7 @@ static void btree_delete_branch_idx_from_node(btree_node *node, uint64_t idx)
 	int i;
 
 	if (!node->leaf) {
-		for (i = idx; i < node->nr_of_keys; i++) {
+		for (i = idx; i <= node->nr_of_keys; i++) {
 			node->branch[i] = node->branch[i + 1];
 		}
 	}
@@ -413,7 +413,7 @@ static int btree_delete_internal(btree_tree *t, btree_node *node, uint64_t key)
 			if (y->nr_of_keys >= BTREE_T(t)) {
 				node_with_prev_key = btree_find_greatest(t, y);
 				node->keys[idx] = node_with_prev_key->keys[y->nr_of_keys-1];
-				node->branch[idx] = node_with_prev_key->branch[y->nr_of_keys-1];
+//				node->branch[idx] = node_with_prev_key->branch[y->nr_of_keys-1];
 				btree_delete_internal(t, y, node_with_prev_key->keys[y->nr_of_keys-1].key);
 			} else {
 				btree_node *z, *node_with_next_key;
@@ -428,7 +428,7 @@ static int btree_delete_internal(btree_tree *t, btree_node *node, uint64_t key)
 				if (z->nr_of_keys >= BTREE_T(t)) {
 					node_with_next_key = btree_find_smallest(t, z);
 					node->keys[idx] = node_with_next_key->keys[0];
-					node->branch[idx] = node_with_next_key->branch[0];
+//					node->branch[idx] = node_with_next_key->branch[0];
 					btree_delete_internal(t, z, node_with_next_key->keys[0].key);
 				} else {
 			/*     else //both y and z have t-1 keys
