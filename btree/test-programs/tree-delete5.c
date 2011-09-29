@@ -60,6 +60,7 @@ int main(void)
 	btree_delete(tmp, 'i');
 	btree_delete(tmp, 'f');
 	btree_delete(tmp, 'e');
+	btree_delete(tmp, 'y');
 	btree_delete(tmp, 't');
 	btree_dump_dot(tmp);
 

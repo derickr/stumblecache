@@ -351,7 +351,7 @@ static void btree_delete_branch_idx_from_node(btree_node *node, uint64_t idx)
 
 static void btree_merge(btree_tree *t, btree_node *a, btree_node *x, uint32_t idx, btree_node *b)
 {
-	int i = a->nr_of_keys, j;
+	int i = a->nr_of_keys, j, k = a->nr_of_keys;
 
 	a->keys[i] = x->keys[idx];
 	a->nr_of_keys++;
@@ -362,10 +362,9 @@ static void btree_merge(btree_tree *t, btree_node *a, btree_node *x, uint32_t id
 	a->nr_of_keys += b->nr_of_keys;
 
 	if (!x->leaf) {
-		a->branch[i + 1] = x->branch[i + 1];
-		for (j = 0; j < b->nr_of_keys; j++) {
-			i++;
-			a->branch[i + 1] = b->branch[j + 1];
+		for (j = 0; j <= b->nr_of_keys; j++) {
+			k++;
+			a->branch[k] = b->branch[j];
 		}
 	}
 }
@@ -493,11 +492,11 @@ static int btree_delete_internal(btree_tree *t, btree_node *node, uint64_t key)
 					btree_merge(t, z, node, i - 1, c);
 					btree_delete_branch_idx_from_node(node, i);
 					btree_delete_key_idx_from_node(node, i - 1);
-					btree_delete_internal(t, z, key);
 					if (t->root->nr_of_keys == 0 && !t->root->leaf) {
 						t->root = btree_get_node(t, t->root->branch[0]);
 					}
-					goto proceed;
+					btree_delete_internal(t, z, key);
+					return 0;
 				}
 				/* Is there a right sibling? */
 				if (i < node->nr_of_keys) { /* otherwise there is no right sibling */
@@ -505,11 +504,11 @@ static int btree_delete_internal(btree_tree *t, btree_node *node, uint64_t key)
 					btree_merge(t, c, node, i, z);
 					btree_delete_branch_idx_from_node(node, i + 1);
 					btree_delete_key_idx_from_node(node, i);
-					btree_delete_internal(t, z, key);
 					if (t->root->nr_of_keys == 0 && !t->root->leaf) {
 						t->root = btree_get_node(t, t->root->branch[0]);
 					}
-					goto proceed;
+					btree_delete_internal(t, z, key);
+					return 0;
 				}
 			}
 proceed:
