@@ -526,25 +526,6 @@ int btree_delete(btree_tree *t, uint64_t key)
 	return 1;
 }
 
-static void btree_dump_node(btree_tree *t, btree_node *node)
-{
-	int i;
-
-	printf("\nIDX: %d\n", node->idx);
-	for (i = 0; i < node->nr_of_keys; i++) {
-		printf("%9lu ", node->keys[i].key);
-	}
-	if (!node->leaf) {
-		printf("\n");
-		for (i = 0; i < node->nr_of_keys + 1; i++) {
-			printf("%9d ", node->branch[i]);
-		}
-		for (i = 0; i < node->nr_of_keys + 1; i++) {
-			btree_dump_node(t, btree_get_node(t, node->branch[i]));
-		}
-	}
-}
-
 static void btree_dump_node_dot(btree_tree *t, btree_node *node)
 {
 	int i;
@@ -578,6 +559,25 @@ void btree_dump_dot(btree_tree *t)
 	printf("}\n");
 }
 
+
+static void btree_dump_node(btree_tree *t, btree_node *node)
+{
+	int i;
+
+	printf("\nIDX: %d\n", node->idx);
+	for (i = 0; i < node->nr_of_keys; i++) {
+		printf("%9lu ", node->keys[i].key);
+	}
+	if (!node->leaf) {
+		printf("\n");
+		for (i = 0; i < node->nr_of_keys + 1; i++) {
+			printf("%9d ", node->branch[i]);
+		}
+		for (i = 0; i < node->nr_of_keys + 1; i++) {
+			btree_dump_node(t, btree_get_node(t, node->branch[i]));
+		}
+	}
+}
 
 void btree_dump(btree_tree *t)
 {
