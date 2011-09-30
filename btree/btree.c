@@ -560,6 +560,34 @@ void btree_dump_dot(btree_tree *t)
 }
 
 
+static void btree_dump_node_test(btree_tree *t, btree_node *node, int level)
+{
+	int i;
+
+	printf("\n%*sIDX: %d: ", level * 2, "", node->idx);
+	if (!node->leaf) {
+		printf("(%d) ", node->branch[0]);
+	}
+	for (i = 0; i < node->nr_of_keys; i++) {
+		printf("%lu ", node->keys[i].key);
+		if (!node->leaf) {
+			printf("(%d) ", node->branch[i+1]);
+		}
+	}
+	if (!node->leaf) {
+		for (i = 0; i < node->nr_of_keys + 1; i++) {
+			btree_dump_node_test(t, btree_get_node(t, node->branch[i]), level + 1);
+		}
+	}
+}
+
+void btree_dump_test(btree_tree *t)
+{
+	btree_dump_node_test(t, t->root, 0);
+	printf("\n");
+}
+
+
 static void btree_dump_node(btree_tree *t, btree_node *node)
 {
 	int i;
