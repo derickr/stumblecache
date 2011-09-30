@@ -532,7 +532,7 @@ static void btree_dump_node(btree_tree *t, btree_node *node)
 
 	printf("\nIDX: %d\n", node->idx);
 	for (i = 0; i < node->nr_of_keys; i++) {
-		printf("%9c ", node->keys[i].key);
+		printf("%9lu ", node->keys[i].key);
 	}
 	if (!node->leaf) {
 		printf("\n");
@@ -581,6 +581,7 @@ void btree_dump_dot(btree_tree *t)
 
 void btree_dump(btree_tree *t)
 {
+	printf("-------\n");
 	btree_dump_node(t, t->root);
-	printf("\n");
+	printf("\n-------\n");
 }
