@@ -38,7 +38,11 @@ btree/test-programs/tree-search2
 btree/test-programs/tree-search3
 btree/test-programs/tree-delete
 btree/test-programs/tree-delete2
+btree/test-programs/tree-delete3
+btree/test-programs/tree-delete4
+btree/test-programs/tree-delete5
 btree/test-programs/url-ids.txt
 btree/test-programs/url-ids2.txt
 btree/test-programs/urls.data.txt
-btree/*.swp
+btree/*.sw*
+btree/test-programs/*.sw*
