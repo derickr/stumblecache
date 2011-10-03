@@ -46,3 +46,11 @@ btree/test-programs/url-ids2.txt
 btree/test-programs/urls.data.txt
 btree/*.sw*
 btree/test-programs/*.sw*
+tests/*.sw*
+tests/*.diff
+tests/*.exp
+tests/*.log
+tests/*.out
+tests/*.php
+tests/*.sh
+
