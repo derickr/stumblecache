@@ -39,6 +39,13 @@ ZEND_BEGIN_MODULE_GLOBALS(stumblecache)
 	/* empty */
 ZEND_END_MODULE_GLOBALS(stumblecache) 
 
+typedef struct _php_stumblecache_obj php_stumblecache_obj;
+
+struct _php_stumblecache_obj {
+	zend_object   std;
+	int           cache;
+};
+
 #ifdef ZTS
 # define STUMBLECACHE_G(v) TSRMG(stumblecache_globals_id, zend_stumblecache_globals *, v)
 #else
