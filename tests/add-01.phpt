@@ -1,5 +1,5 @@
 --TEST--
-Test for adding an element to an empty tree
+Adding an element.
 --FILE--
 <?php
 require 'test-runner.php';
