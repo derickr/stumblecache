@@ -5,6 +5,10 @@ function runTest($initial, $spec)
 	{
 		handleItem($item);
 	}
+	foreach ( preg_split( "/\s/", $spec ) as $item )
+	{
+		handleItem($item);
+	}
 	quit();
 }
 
@@ -20,8 +24,12 @@ function handleItem($item)
 		case 'D':
 			dump();
 			break;
+		case 'I':
+			info();
+			break;
 		case 'L':
 			lookup( $item );
+			break;
 		case 'Q':
 			quit( $item );
 			break;
@@ -53,6 +61,11 @@ function quit()
 	$file = $GLOBALS['cache']->getPath();
 	unset( $GLOBALS['cache'] );
 	unlink( $file );
+}
+
+function info()
+{
+	print_r( $GLOBALS['cache']->getInfo() );
 }
 
 function add( $item )

@@ -74,6 +74,7 @@ zend_object_handlers stumblecache_object_handlers;
 
 /* Forward method declarations */
 PHP_METHOD(StumbleCache, __construct);
+PHP_METHOD(StumbleCache, getInfo);
 PHP_METHOD(StumbleCache, getPath);
 
 /* Reflection information */
@@ -82,12 +83,16 @@ ZEND_BEGIN_ARG_INFO_EX(arginfo_stumblecache_construct, 0, 0, 1)
 	ZEND_ARG_INFO(0, options)
 ZEND_END_ARG_INFO()
 
+ZEND_BEGIN_ARG_INFO_EX(arginfo_stumblecache_getinfo, 0, 0, 0)
+ZEND_END_ARG_INFO()
+
 ZEND_BEGIN_ARG_INFO_EX(arginfo_stumblecache_getpath, 0, 0, 0)
 ZEND_END_ARG_INFO()
 
 /* StumbleCache methods */
 zend_function_entry stumblecache_funcs[] = {
 	PHP_ME(StumbleCache, __construct,     arginfo_stumblecache_construct, ZEND_ACC_CTOR|ZEND_ACC_PUBLIC)
+	PHP_ME(StumbleCache, getInfo,         arginfo_stumblecache_getinfo,   ZEND_ACC_PUBLIC)
 	PHP_ME(StumbleCache, getPath,         arginfo_stumblecache_getpath,   ZEND_ACC_PUBLIC)
 	{NULL, NULL, NULL}
 };
@@ -219,6 +224,29 @@ PHP_METHOD(StumbleCache, getPath)
 	php_set_error_handling(EH_NORMAL, NULL TSRMLS_CC);
 
 	RETURN_STRING(scache_obj->path, 1);
+}
+
+/* Returns some simple statistics */
+PHP_METHOD(StumbleCache, getInfo)
+{
+	zval *object;
+	php_stumblecache_obj *scache_obj;
+
+	if (zend_parse_method_parameters(ZEND_NUM_ARGS() TSRMLS_CC, getThis(), "O", &object, stumblecache_ce) == FAILURE) {
+		return;
+	}
+
+	php_set_error_handling(EH_THROW, NULL TSRMLS_CC);
+	scache_obj = (php_stumblecache_obj *) zend_object_store_get_object(object TSRMLS_CC);
+	php_set_error_handling(EH_NORMAL, NULL TSRMLS_CC);
+
+	array_init(return_value);
+	add_assoc_long_ex(return_value, "version", sizeof("version"), scache_obj->cache->header->version);
+	add_assoc_long_ex(return_value, "order", sizeof("order"), scache_obj->cache->header->order);
+	add_assoc_long_ex(return_value, "max_items", sizeof("max_items"), scache_obj->cache->header->max_items);
+	add_assoc_long_ex(return_value, "item_count", sizeof("item_count"), scache_obj->cache->header->item_count);
+	add_assoc_long_ex(return_value, "item_size", sizeof("item_size"), scache_obj->cache->header->item_size);
+	add_assoc_long_ex(return_value, "node_count", sizeof("node_count"), scache_obj->cache->header->node_count);
 }
 
 PHP_MINIT_FUNCTION(stumblecache)
