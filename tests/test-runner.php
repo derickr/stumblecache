@@ -5,6 +5,7 @@ function runTest($initial, $spec)
 	{
 		handleItem($item);
 	}
+	quit();
 }
 
 function handleItem($item)
@@ -21,6 +22,9 @@ function handleItem($item)
 			break;
 		case 'L':
 			lookup( $item );
+		case 'Q':
+			quit( $item );
+			break;
 		case 'R':
 			remove( $item );
 			break;
@@ -42,6 +46,13 @@ function setup( $item )
 		'max_datasize' => $dataSize,
 	);
 	$GLOBALS['cache'] = new StumbleCache( $name, $options );
+}
+
+function quit()
+{
+	$file = $GLOBALS['cache']->getPath();
+	unset( $GLOBALS['cache'] );
+	unlink( $file );
 }
 
 function add( $item )
