@@ -28,6 +28,7 @@ modules/
 run-tests.php
 *.la
 *.lo
+*.sw*
 btree/test-programs/test.mmap
 btree/test-programs/tree-create
 btree/test-programs/tree-create-failures
