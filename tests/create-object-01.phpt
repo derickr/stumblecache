@@ -7,5 +7,8 @@ stumblecache.location=/tmp
 // one argument
 $o = new StumbleCache('name');
 echo get_class($o), "\n";
+$path = $o->getPath();
+$o = NULL;
+unlink( $path );
 --EXPECT--
 StumbleCache

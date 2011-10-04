@@ -74,6 +74,7 @@ zend_object_handlers stumblecache_object_handlers;
 
 /* Forward method declarations */
 PHP_METHOD(StumbleCache, __construct);
+PHP_METHOD(StumbleCache, getPath);
 
 /* Reflection information */
 ZEND_BEGIN_ARG_INFO_EX(arginfo_stumblecache_construct, 0, 0, 1)
@@ -81,9 +82,13 @@ ZEND_BEGIN_ARG_INFO_EX(arginfo_stumblecache_construct, 0, 0, 1)
 	ZEND_ARG_INFO(0, options)
 ZEND_END_ARG_INFO()
 
+ZEND_BEGIN_ARG_INFO_EX(arginfo_stumblecache_getpath, 0, 0, 0)
+ZEND_END_ARG_INFO()
+
 /* StumbleCache methods */
 zend_function_entry stumblecache_funcs[] = {
 	PHP_ME(StumbleCache, __construct,     arginfo_stumblecache_construct, ZEND_ACC_CTOR|ZEND_ACC_PUBLIC)
+	PHP_ME(StumbleCache, getPath,         arginfo_stumblecache_getpath,   ZEND_ACC_PUBLIC)
 	{NULL, NULL, NULL}
 };
 
@@ -102,6 +107,14 @@ static void stumblecache_object_free_storage(void *object TSRMLS_DC)
 	php_stumblecache_obj *intern = (php_stumblecache_obj *) object;
 
 	if (intern->cache) {
+		btree_close(intern->cache);
+		btree_free(intern->cache);
+		intern->cache = NULL;
+	}
+
+	if (intern->path) {
+		efree(intern->path);
+		intern->path = NULL;
 	}
 
 	zend_object_std_dtor(&intern->std TSRMLS_CC);
@@ -154,15 +167,15 @@ static int stumblecache_initialize(php_stumblecache_obj *obj, char *cache_id, zv
 	spprintf(&path, 128, "%s/%s.scache", "/tmp", cache_id);
 
 	obj->cache = btree_open(path);
+	obj->path  = NULL;
 	if (!obj->cache) {
 		scache_parse_options(options, &order, &max_items, &max_datasize);
 		obj->cache = btree_create(path, order, max_items, max_datasize);
 		if (!obj->cache) {
-			efree(path);
 			return 0;
 		}
 	}
-	efree(path);
+	obj->path = path;
 	return 1;
 }
 
@@ -190,6 +203,22 @@ PHP_METHOD(StumbleCache, __construct)
 		}
 	}
 	php_set_error_handling(EH_NORMAL, NULL TSRMLS_CC);
+}
+
+PHP_METHOD(StumbleCache, getPath)
+{
+	zval *object;
+	php_stumblecache_obj *scache_obj;
+
+	if (zend_parse_method_parameters(ZEND_NUM_ARGS() TSRMLS_CC, getThis(), "O", &object, stumblecache_ce) == FAILURE) {
+		return;
+	}
+
+	php_set_error_handling(EH_THROW, NULL TSRMLS_CC);
+	scache_obj = (php_stumblecache_obj *) zend_object_store_get_object(object TSRMLS_CC);
+	php_set_error_handling(EH_NORMAL, NULL TSRMLS_CC);
+
+	RETURN_STRING(scache_obj->path, 1);
 }
 
 PHP_MINIT_FUNCTION(stumblecache)

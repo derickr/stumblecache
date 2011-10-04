@@ -114,6 +114,8 @@ btree_tree *btree_create(char *path, uint32_t order, uint32_t nr_of_items, uint3
 		return NULL;
 	}
 
+	tmp_tree->path = path;
+
 	tmp_tree->header->version = 1;
 	tmp_tree->header->order = order;
 	tmp_tree->header->max_items = nr_of_items;
@@ -130,6 +132,16 @@ btree_tree *btree_create(char *path, uint32_t order, uint32_t nr_of_items, uint3
 	tmp_tree->root = tmp_node;
 
 	return tmp_tree;
+}
+
+int btree_close(btree_tree *t)
+{
+	int fd;
+	struct stat fileinfo;
+
+	stat(t->path, &fileinfo);
+	close(t->fd);
+	return munmap(t->mmap, fileinfo.st_size) == 0;
 }
 
 void btree_free(btree_tree *t)

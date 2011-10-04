@@ -21,6 +21,7 @@
 #define PHP_STUMBLECACHE_H
 
 #include "php.h"
+#include "btree/btree.h"
 
 extern zend_module_entry stumblecache_module_entry;
 #define phpext_stumblecache_ptr &stumblecache_module_entry
@@ -43,7 +44,8 @@ typedef struct _php_stumblecache_obj php_stumblecache_obj;
 
 struct _php_stumblecache_obj {
 	zend_object   std;
-	int           cache;
+	btree_tree   *cache;
+	char         *path;
 };
 
 #ifdef ZTS

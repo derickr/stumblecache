@@ -40,10 +40,12 @@ typedef struct {
 	void         *mmap;
 	void         *nodes;
 	void         *data;
+	char         *path;
 } btree_tree;
 
 btree_tree *btree_open(char *path);
 btree_tree *btree_create(char *path, uint32_t order, uint32_t nr_of_items, uint32_t data_size);
+int btree_close(btree_tree *t);
 void btree_free(btree_tree *t);
 
 void *btree_get_data(btree_tree *t, uint32_t idx, uint32_t *data_size);
