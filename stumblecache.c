@@ -21,6 +21,8 @@
 #include "config.h"
 #endif
 
+#include <stdint.h>
+
 #include "php.h"
 #include "zend.h"
 #include "zend_alloc.h"
@@ -70,8 +72,18 @@ static void stumblecache_init_globals(zend_stumblecache_globals *stumblecache_gl
 zend_class_entry *stumblecache_ce;
 zend_object_handlers stumblecache_object_handlers;
 
+/* Forward method declarations */
+PHP_METHOD(StumbleCache, __construct);
+
 /* Reflection information */
+ZEND_BEGIN_ARG_INFO_EX(arginfo_stumblecache_construct, 0, 0, 1)
+	ZEND_ARG_INFO(0, name)
+	ZEND_ARG_INFO(0, options)
+ZEND_END_ARG_INFO()
+
+/* StumbleCache methods */
 zend_function_entry stumblecache_funcs[] = {
+	PHP_ME(StumbleCache, __construct,     arginfo_stumblecache_construct, ZEND_ACC_CTOR|ZEND_ACC_PUBLIC)
 	{NULL, NULL, NULL}
 };
 
@@ -126,6 +138,34 @@ static zend_object_value stumblecache_object_new(zend_class_entry *class_type TS
 	return stumblecache_object_new_ex(class_type, NULL TSRMLS_CC);
 }
 
+static void scache_parse_options(zval *options, uint32_t *order, uint32_t *max_items, uint32_t *max_datasize)
+{
+	*order = 3;
+	*max_items = 32;
+	*max_datasize = 256;
+}
+
+static int stumblecache_initialize(php_stumblecache_obj *obj, char *cache_id, zval *options TSRMLS_DC)
+{
+	char *path;
+	uint32_t order, max_items, max_datasize;
+
+	/* Create filepath */
+	spprintf(&path, 128, "%s/%s.scache", "/tmp", cache_id);
+
+	obj->cache = btree_open(path);
+	if (!obj->cache) {
+		scache_parse_options(options, &order, &max_items, &max_datasize);
+		obj->cache = btree_create(path, order, max_items, max_datasize);
+		if (!obj->cache) {
+			efree(path);
+			return 0;
+		}
+	}
+	efree(path);
+	return 1;
+}
+
 void stumblecache_register_class(TSRMLS_D)
 {
 	zend_class_entry ce_stumblecache;
@@ -135,6 +175,21 @@ void stumblecache_register_class(TSRMLS_D)
 	stumblecache_ce = zend_register_internal_class_ex(&ce_stumblecache, NULL, NULL TSRMLS_CC);
 
 	memcpy(&stumblecache_object_handlers, zend_get_std_object_handlers(), sizeof(zend_object_handlers));
+}
+
+PHP_METHOD(StumbleCache, __construct)
+{
+	char *cache_id;
+	int   cache_id_len;
+	zval *options = NULL;
+
+	php_set_error_handling(EH_THROW, NULL TSRMLS_CC);
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s|a", &cache_id, &cache_id_len, &options) == SUCCESS) {
+		if (!stumblecache_initialize(zend_object_store_get_object(getThis() TSRMLS_CC), cache_id, options TSRMLS_CC)) {
+			php_error_docref(NULL TSRMLS_CC, E_WARNING, "Could not initialize cache.");
+		}
+	}
+	php_set_error_handling(EH_NORMAL, NULL TSRMLS_CC);
 }
 
 PHP_MINIT_FUNCTION(stumblecache)
