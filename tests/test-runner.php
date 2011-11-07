@@ -73,3 +73,8 @@ function add( $item )
 	@list( $key, $value ) = explode( ':', $item );
 	$GLOBALS['cache']->add( $key, $value );
 }
+
+function dump()
+{
+	$GLOBALS['cache']->dump();
+}
