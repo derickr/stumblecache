@@ -74,6 +74,11 @@ function add( $item )
 	$GLOBALS['cache']->add( $key, $value );
 }
 
+function remove( $item )
+{
+	$GLOBALS['cache']->remove( $item );
+}
+
 function dump()
 {
 	$GLOBALS['cache']->dump();

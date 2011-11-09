@@ -534,8 +534,7 @@ int btree_delete(btree_tree *t, uint64_t key)
 {
 	btree_node *n = t->root;
 
-	btree_delete_internal(t, n, key);
-	return 1;
+	return btree_delete_internal(t, n, key);
 }
 
 static void btree_dump_node_dot(btree_tree *t, btree_node *node)
