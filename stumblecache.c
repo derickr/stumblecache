@@ -318,7 +318,6 @@ PHP_METHOD(StumbleCache, remove)
 	zval *object;
 	php_stumblecache_obj *scache_obj;
 	long  key;
-	uint32_t data_idx;
 
 	if (zend_parse_method_parameters(ZEND_NUM_ARGS() TSRMLS_CC, getThis(), "Ol", &object, stumblecache_ce, &key) == FAILURE) {
 		return;
