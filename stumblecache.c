@@ -79,6 +79,7 @@ PHP_METHOD(StumbleCache, getPath);
 PHP_METHOD(StumbleCache, dump);
 PHP_METHOD(StumbleCache, add);
 PHP_METHOD(StumbleCache, remove);
+PHP_METHOD(StumbleCache, fetch);
 
 /* Reflection information */
 ZEND_BEGIN_ARG_INFO_EX(arginfo_stumblecache_construct, 0, 0, 1)
@@ -104,6 +105,10 @@ ZEND_BEGIN_ARG_INFO_EX(arginfo_stumblecache_remove, 0, 0, 1)
 	ZEND_ARG_INFO(0, key)
 ZEND_END_ARG_INFO()
 
+ZEND_BEGIN_ARG_INFO_EX(arginfo_stumblecache_fetch, 0, 0, 1)
+	ZEND_ARG_INFO(0, key)
+ZEND_END_ARG_INFO()
+
 /* StumbleCache methods */
 zend_function_entry stumblecache_funcs[] = {
 	PHP_ME(StumbleCache, __construct,     arginfo_stumblecache_construct, ZEND_ACC_CTOR|ZEND_ACC_PUBLIC)
@@ -112,6 +117,7 @@ zend_function_entry stumblecache_funcs[] = {
 	PHP_ME(StumbleCache, dump,            arginfo_stumblecache_dump,      ZEND_ACC_PUBLIC)
 	PHP_ME(StumbleCache, add,             arginfo_stumblecache_add,       ZEND_ACC_PUBLIC)
 	PHP_ME(StumbleCache, remove,          arginfo_stumblecache_remove,    ZEND_ACC_PUBLIC)
+	PHP_ME(StumbleCache, fetch,           arginfo_stumblecache_fetch,     ZEND_ACC_PUBLIC)
 	{NULL, NULL, NULL}
 };
 
@@ -326,6 +332,29 @@ PHP_METHOD(StumbleCache, remove)
 		RETURN_TRUE;
 	} else {
 		RETURN_FALSE;
+	}
+}
+
+PHP_METHOD(StumbleCache, fetch)
+{
+	zval *object;
+	php_stumblecache_obj *scache_obj;
+	long  key;
+	uint32_t data_idx;
+
+	if (zend_parse_method_parameters(ZEND_NUM_ARGS() TSRMLS_CC, getThis(), "Ol", &object, stumblecache_ce, &key) == FAILURE) {
+		return;
+	}
+
+	php_set_error_handling(EH_THROW, NULL TSRMLS_CC);
+	scache_obj = (php_stumblecache_obj *) zend_object_store_get_object(object TSRMLS_CC);
+	php_set_error_handling(EH_NORMAL, NULL TSRMLS_CC);
+
+	if (btree_search(scache_obj->cache, scache_obj->cache->root, key, &data_idx)) {
+		/* Retrieve data */
+		RETURN_TRUE;
+	} else {
+		return; /* Implicit return NULL; */
 	}
 }
 

@@ -27,8 +27,8 @@ function handleItem($item)
 		case 'I':
 			info();
 			break;
-		case 'L':
-			lookup( $item );
+		case 'F':
+			fetch( $item );
 			break;
 		case 'Q':
 			quit( $item );
@@ -82,4 +82,9 @@ function remove( $item )
 function dump()
 {
 	$GLOBALS['cache']->dump();
+}
+
+function fetch( $item )
+{
+	echo $GLOBALS['cache']->fetch( $item ) ? "$item: FOUND\n" : "$item: NOT FOUND\n";
 }
