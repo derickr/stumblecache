@@ -352,6 +352,8 @@ PHP_METHOD(StumbleCache, fetch)
 	php_stumblecache_obj *scache_obj;
 	long  key;
 	uint32_t data_idx;
+	void    *data;
+	uint32_t data_size;
 
 	if (zend_parse_method_parameters(ZEND_NUM_ARGS() TSRMLS_CC, getThis(), "Ol", &object, stumblecache_ce, &key) == FAILURE) {
 		return;
@@ -363,7 +365,8 @@ PHP_METHOD(StumbleCache, fetch)
 
 	if (btree_search(scache_obj->cache, scache_obj->cache->root, key, &data_idx)) {
 		/* Retrieve data */
-		RETURN_TRUE;
+		data = btree_get_data(scache_obj->cache, data_idx, &data_size);
+		RETURN_STRINGL(data, data_size, 1);
 	} else {
 		return; /* Implicit return NULL; */
 	}
