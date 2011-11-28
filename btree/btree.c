@@ -91,6 +91,7 @@ btree_tree *btree_open(char *path)
 
 	t = malloc(sizeof(btree_tree));
 	if (btree_open_file(t, path) != 0) {
+		free(t);
 		return NULL;
 	}
 	t->data = t->mmap + BTREE_HEADER_SIZE + (t->header->node_count * 4096);
