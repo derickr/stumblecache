@@ -86,5 +86,5 @@ function dump()
 
 function fetch( $item )
 {
-	echo $GLOBALS['cache']->fetch( $item ) ? "$item: FOUND\n" : "$item: NOT FOUND\n";
+	echo $GLOBALS['cache']->fetch( $item ) !== NULL ? "$item: FOUND\n" : "$item: NOT FOUND\n";
 }

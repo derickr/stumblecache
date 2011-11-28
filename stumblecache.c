@@ -314,15 +314,16 @@ PHP_METHOD(StumbleCache, add)
 	scache_obj = (php_stumblecache_obj *) zend_object_store_get_object(object TSRMLS_CC);
 	php_set_error_handling(EH_NORMAL, NULL TSRMLS_CC);
 
-	if (btree_insert(scache_obj->cache, key, &data_idx)) {
-		/* Add data */
-		btree_get_data_ptr(scache_obj->cache, data_idx, (void**) &data, (uint32_t**) &data_size, &max_data_size);
-		memcpy(data, Z_STRVAL_P(value), Z_STRLEN_P(value));
-		*data_size = Z_STRLEN_P(value);
-		RETURN_TRUE;
-	} else {
-		RETURN_FALSE;
+	if (Z_STRLEN_P(value) <= scache_obj->cache->header->item_size) {
+		if (btree_insert(scache_obj->cache, key, &data_idx)) {
+			/* Add data */
+			btree_get_data_ptr(scache_obj->cache, data_idx, (void**) &data, (uint32_t**) &data_size, &max_data_size);
+			memcpy(data, Z_STRVAL_P(value), Z_STRLEN_P(value));
+			*data_size = Z_STRLEN_P(value);
+			RETURN_TRUE;
+		}
 	}
+	RETURN_FALSE;
 }
 
 PHP_METHOD(StumbleCache, remove)
