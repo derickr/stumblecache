@@ -172,6 +172,16 @@ int btree_set_data(btree_tree *t, uint32_t idx, void *data, uint32_t data_size)
 	return 1;
 }
 
+int btree_get_data_ptr(btree_tree *t, uint32_t idx, void **data, uint32_t **data_size, uint32_t *max_data_size)
+{
+	void *location;
+
+	location = t->data + (idx * (t->header->item_size + 1 + sizeof(uint32_t)));
+	*max_data_size = t->header->item_size;
+	*data = location + sizeof(uint32_t);
+	*data_size = &(((uint32_t*)location)[0]);
+}
+
 int btree_search(btree_tree *t, btree_node *node, uint64_t key, uint32_t *idx)
 {
 	int i = 0;
