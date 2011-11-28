@@ -29,15 +29,21 @@
 #include "php_stumblecache.h"
 #include "php_globals.h"
 #include "ext/standard/info.h"
+#include "ext/igbinary/igbinary.h"
 
 zend_function_entry stumblecache_functions[] = {
 	{NULL, NULL, NULL}
 };
 
+static const zend_module_dep stumblecache_module_deps[] = {
+  ZEND_MOD_REQUIRED("igbinary")
+  {NULL, NULL, NULL}
+};
 
 zend_module_entry stumblecache_module_entry = {
 #if ZEND_MODULE_API_NO >= 20010901
-	STANDARD_MODULE_HEADER,
+	STANDARD_MODULE_HEADER_EX, NULL,
+	stumblecache_module_deps,
 #endif
 	"stumblecache",
 	stumblecache_functions,

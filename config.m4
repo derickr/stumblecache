@@ -8,4 +8,6 @@ if test "$PHP_STUMBLECACHE" != "no"; then
   PHP_NEW_EXTENSION(stumblecache, stumblecache.c btree/btree.c, $ext_shared)
   PHP_SUBST(STUMBLECACHE_SHARED_LIBADD)
   PHP_ADD_BUILD_DIR($ext_builddir/lib, 1)
+
+  PHP_ADD_EXTENSION_DEP(stumblecache, igbinary)
 fi

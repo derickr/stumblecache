@@ -1,5 +1,7 @@
 --TEST--
 Adding elements so that a child overflows.
+--EXTENSIONS--
+igbinary
 --FILE--
 <?php
 require 'test-runner.php';

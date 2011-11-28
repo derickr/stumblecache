@@ -1,5 +1,7 @@
 --TEST--
 Getting cache info (1)
+--EXTENSIONS--
+igbinary
 --FILE--
 <?php
 require 'test-runner.php';

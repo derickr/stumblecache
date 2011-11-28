@@ -1,5 +1,7 @@
 --TEST--
 Creating a StumbleCache object (1)
+--EXTENSIONS--
+igbinary
 --INI--
 stumblecache.location=/tmp
 --FILE--

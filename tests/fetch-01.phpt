@@ -1,5 +1,7 @@
 --TEST--
 Finding an element.
+--EXTENSIONS--
+igbinary
 --FILE--
 <?php
 require 'test-runner.php';

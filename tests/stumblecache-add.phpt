@@ -1,5 +1,7 @@
 --TEST--
 Adding items.
+--EXTENSIONS--
+igbinary
 --FILE--
 <?php
 // Initialise the cache

@@ -1,5 +1,7 @@
 --TEST--
 Deletion with existing and non-existing items.
+--EXTENSIONS--
+igbinary
 --FILE--
 <?php
 // Initialise the cache

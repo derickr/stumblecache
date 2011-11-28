@@ -1,5 +1,7 @@
 --TEST--
 Removing elements that cause a child collapse.
+--EXTENSIONS--
+igbinary
 --FILE--
 <?php
 require 'test-runner.php';

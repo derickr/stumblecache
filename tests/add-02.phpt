@@ -1,5 +1,7 @@
 --TEST--
 Adding elements so that the root node overflows.
+--EXTENSIONS--
+igbinary
 --FILE--
 <?php
 require 'test-runner.php';
