@@ -304,7 +304,6 @@ PHP_METHOD(StumbleCache, add)
 	uint32_t data_idx;
 	void *data;
 	uint32_t *data_size;
-	uint32_t  max_data_size;
 
 	if (zend_parse_method_parameters(ZEND_NUM_ARGS() TSRMLS_CC, getThis(), "Olz", &object, stumblecache_ce, &key, &value) == FAILURE) {
 		return;
@@ -317,7 +316,7 @@ PHP_METHOD(StumbleCache, add)
 	if (Z_STRLEN_P(value) <= scache_obj->cache->header->item_size) {
 		if (btree_insert(scache_obj->cache, key, &data_idx)) {
 			/* Add data */
-			btree_get_data_ptr(scache_obj->cache, data_idx, (void**) &data, (uint32_t**) &data_size, &max_data_size);
+			btree_get_data_ptr(scache_obj->cache, data_idx, (void**) &data, (uint32_t**) &data_size);
 			memcpy(data, Z_STRVAL_P(value), Z_STRLEN_P(value));
 			*data_size = Z_STRLEN_P(value);
 			RETURN_TRUE;
