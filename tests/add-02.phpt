@@ -6,7 +6,7 @@ igbinary
 <?php
 require 'test-runner.php';
 
-$initial = "Sadd01:3:64:128";
+$initial = "Sadd02:3:64:128";
 $spec    =
 	'A65 A67 A68 A70 A72 D '. // fill up the root node
 	'A79 D';                  // causes split
