@@ -315,13 +315,21 @@ PHP_METHOD(StumbleCache, add)
 
 	if (Z_STRLEN_P(value) <= scache_obj->cache->header->item_size) {
 		if (btree_insert(scache_obj->cache, key, &data_idx)) {
+			uint8_t *serialized;
+			size_t   serialized_len;
+
 			/* Add data */
 			btree_get_data_ptr(scache_obj->cache, data_idx, (void**) &data, (uint32_t**) &data_size);
-			memcpy(data, Z_STRVAL_P(value), Z_STRLEN_P(value));
-			*data_size = Z_STRLEN_P(value);
-			RETURN_TRUE;
+
+			if (igbinary_serialize(&serialized, &serialized_len, value TSRMLS_CC) == 0) {
+				memcpy(data, serialized, serialized_len);
+				*data_size = serialized_len;
+				efree(serialized);
+				RETURN_TRUE;
+			}
 		}
 	}
+	/* Need to remove the element now */
 	RETURN_FALSE;
 }
 
@@ -366,10 +374,12 @@ PHP_METHOD(StumbleCache, fetch)
 	if (btree_search(scache_obj->cache, scache_obj->cache->root, key, &data_idx)) {
 		/* Retrieve data */
 		data = btree_get_data(scache_obj->cache, data_idx, &data_size);
-		RETURN_STRINGL(data, data_size, 1);
-	} else {
-		return; /* Implicit return NULL; */
+		if (data_size) {
+			igbinary_unserialize((uint8_t *) data, data_size, &return_value TSRMLS_CC);
+			return;
+		}
 	}
+	return; /* Implicit return NULL; */
 }
 
 PHP_MINIT_FUNCTION(stumblecache)
