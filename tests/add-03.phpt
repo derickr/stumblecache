@@ -4,7 +4,7 @@ Adding elements so that a child overflows.
 igbinary
 --FILE--
 <?php
-require 'test-runner.php';
+require 'lib/test-runner.php';
 
 $initial = "Sadd03:3:64:128";
 $spec    =

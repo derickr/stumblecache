@@ -4,7 +4,7 @@ Adding elements so that the root node overflows.
 igbinary
 --FILE--
 <?php
-require 'test-runner.php';
+require 'lib/test-runner.php';
 
 $initial = "Sadd02:3:64:128";
 $spec    =

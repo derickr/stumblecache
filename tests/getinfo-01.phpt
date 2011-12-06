@@ -4,7 +4,7 @@ Getting cache info (1)
 igbinary
 --FILE--
 <?php
-require 'test-runner.php';
+require 'lib/test-runner.php';
 
 $initial = "Sgetinfo01:3:64:128";
 $spec    = 'I';

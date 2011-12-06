@@ -4,7 +4,7 @@ Adding an element.
 igbinary
 --FILE--
 <?php
-require 'test-runner.php';
+require 'lib/test-runner.php';
 
 $initial = "Sadd01:3:64:128";
 $spec    = 'A65 D';

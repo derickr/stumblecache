@@ -4,7 +4,7 @@ Removing elements that cause a child collapse.
 igbinary
 --FILE--
 <?php
-require 'test-runner.php';
+require 'lib/test-runner.php';
 
 $initial = "Sdelete01:3:64:128";
 $spec    =
