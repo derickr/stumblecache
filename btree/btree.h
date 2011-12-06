@@ -4,6 +4,7 @@
 #define BTREE_T2(t)           (2 * t->header->order)
 
 #include <stdint.h>
+#include <stddef.h>
 
 typedef struct {
 	uint64_t key;
@@ -26,7 +27,7 @@ typedef struct {
 	uint32_t order;
 	uint32_t max_items;
 	uint32_t item_count;
-	uint32_t item_size;
+	size_t   item_size;
 	uint32_t node_count;
 	uint32_t next_node_idx;
 	uint32_t next_data_idx;
@@ -44,13 +45,13 @@ typedef struct {
 } btree_tree;
 
 btree_tree *btree_open(char *path);
-btree_tree *btree_create(char *path, uint32_t order, uint32_t nr_of_items, uint32_t data_size);
+btree_tree *btree_create(char *path, uint32_t order, uint32_t nr_of_items, size_t data_size);
 int btree_close(btree_tree *t);
 void btree_free(btree_tree *t);
 
-void *btree_get_data(btree_tree *t, uint32_t idx, uint32_t *data_size);
-int btree_set_data(btree_tree *t, uint32_t idx, void *data, uint32_t data_size);
-int btree_get_data_ptr(btree_tree *t, uint32_t idx, void **data, uint32_t **data_size);
+void *btree_get_data(btree_tree *t, uint32_t idx, size_t *data_size);
+int btree_set_data(btree_tree *t, uint32_t idx, void *data, size_t data_size);
+int btree_get_data_ptr(btree_tree *t, uint32_t idx, void **data, size_t **data_size);
 
 int btree_search(btree_tree *t, btree_node *node, uint64_t key, uint32_t *idx);
 int btree_insert(btree_tree *t, uint64_t key, uint32_t *data_idx);

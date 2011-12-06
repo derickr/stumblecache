@@ -18,7 +18,7 @@ btree_node *btree_get_node(btree_tree *t, uint32_t idx)
 	return (btree_node*) (t->nodes + (idx * 4096));
 }
 
-static int btree_allocate(char *path, uint32_t order, uint32_t nr_of_items, uint32_t data_size)
+static int btree_allocate(char *path, uint32_t order, uint32_t nr_of_items, size_t data_size)
 {
 	int fd;
 	int64_t bytes;
@@ -32,7 +32,7 @@ static int btree_allocate(char *path, uint32_t order, uint32_t nr_of_items, uint
 	 * Data:     nr_of_items * (length-marker + data_size + '\0' delimiter)
 	 */
 	node_count = (nr_of_items / order) + 1;
-	bytes = BTREE_HEADER_SIZE + (node_count * 4096) + (nr_of_items * (sizeof(uint32_t) + data_size + 1));
+	bytes = BTREE_HEADER_SIZE + (node_count * 4096) + (nr_of_items * (sizeof(size_t) + data_size + 1));
 
 	fd = open(path, O_CREAT | O_RDWR, S_IRUSR | S_IWUSR);
 
@@ -99,7 +99,7 @@ btree_tree *btree_open(char *path)
 	return t;
 }
 
-btree_tree *btree_create(char *path, uint32_t order, uint32_t nr_of_items, uint32_t data_size)
+btree_tree *btree_create(char *path, uint32_t order, uint32_t nr_of_items, size_t data_size)
 {
 	btree_tree *tmp_tree;
 	btree_node *tmp_node;
@@ -150,35 +150,35 @@ void btree_free(btree_tree *t)
 	free(t);
 }
 
-void *btree_get_data(btree_tree *t, uint32_t idx, uint32_t *data_size)
+void *btree_get_data(btree_tree *t, uint32_t idx, size_t *data_size)
 {
 	void *location;
 
-	location = t->data + (idx * (t->header->item_size + 1 + sizeof(uint32_t)));
-	*data_size = ((int32_t*)location)[0];
-	return location + sizeof(int32_t);
+	location = t->data + (idx * (t->header->item_size + 1 + sizeof(size_t)));
+	*data_size = ((size_t*)location)[0];
+	return location + sizeof(size_t);
 }
 
-int btree_set_data(btree_tree *t, uint32_t idx, void *data, uint32_t data_size)
+int btree_set_data(btree_tree *t, uint32_t idx, void *data, size_t data_size)
 {
 	void *location;
 
 	if (data_size > t->header->item_size) {
 		return 0;
 	}
-	location = t->data + (idx * (t->header->item_size + 1 + sizeof(uint32_t)));
-	((uint32_t*)location)[0] = data_size;
-	memcpy(location + sizeof(uint32_t), data, data_size);
+	location = t->data + (idx * (t->header->item_size + 1 + sizeof(size_t)));
+	((size_t*)location)[0] = data_size;
+	memcpy(location + sizeof(size_t), data, data_size);
 	return 1;
 }
 
-int btree_get_data_ptr(btree_tree *t, uint32_t idx, void **data, uint32_t **data_size)
+int btree_get_data_ptr(btree_tree *t, uint32_t idx, void **data, size_t **data_size)
 {
 	void *location;
 
-	location = t->data + (idx * (t->header->item_size + 1 + sizeof(uint32_t)));
-	*data = location + sizeof(uint32_t);
-	*data_size = &(((uint32_t*)location)[0]);
+	location = t->data + (idx * (t->header->item_size + 1 + sizeof(size_t)));
+	*data = location + sizeof(size_t);
+	*data_size = &(((size_t*)location)[0]);
 }
 
 int btree_search(btree_tree *t, btree_node *node, uint64_t key, uint32_t *idx)

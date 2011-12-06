@@ -295,6 +295,30 @@ PHP_METHOD(StumbleCache, dump)
 	btree_dump(scache_obj->cache);
 }
 
+
+struct stumblecache_mm_context {
+	void *data;
+	size_t max_size;
+};
+
+static inline void *stumblecache_alloc(size_t size, void *context)
+{
+	return ((struct stumblecache_mm_context*) context)->data;
+}
+
+static inline void *stumblecache_realloc(void *ptr, size_t newsize, void *context)
+{
+	if (newsize > ((struct stumblecache_mm_context*) context)->max_size) {
+		return NULL;
+	}
+	return ptr;
+}
+
+static inline void stumblecache_free(void *ptr, void *context)
+{
+	return;
+}
+
 PHP_METHOD(StumbleCache, add)
 {
 	zval *object;
@@ -302,8 +326,6 @@ PHP_METHOD(StumbleCache, add)
 	long  key;
 	zval *value;
 	uint32_t data_idx;
-	void *data;
-	uint32_t *data_size;
 
 	if (zend_parse_method_parameters(ZEND_NUM_ARGS() TSRMLS_CC, getThis(), "Olz", &object, stumblecache_ce, &key, &value) == FAILURE) {
 		return;
@@ -313,22 +335,35 @@ PHP_METHOD(StumbleCache, add)
 	scache_obj = (php_stumblecache_obj *) zend_object_store_get_object(object TSRMLS_CC);
 	php_set_error_handling(EH_NORMAL, NULL TSRMLS_CC);
 
-	if (Z_STRLEN_P(value) <= scache_obj->cache->header->item_size) {
-		if (btree_insert(scache_obj->cache, key, &data_idx)) {
-			uint8_t *serialized;
-			size_t   serialized_len;
+	if (btree_insert(scache_obj->cache, key, &data_idx)) {
+		size_t   serialized_len;
+		void    *data, *dummy;
+		size_t  *data_size;
+		struct igbinary_memory_manager *mm;
+		struct stumblecache_mm_context context;
 
-			/* Add data */
-			btree_get_data_ptr(scache_obj->cache, data_idx, (void**) &data, (uint32_t**) &data_size);
+		/* Add data */
+		btree_get_data_ptr(scache_obj->cache, data_idx, (void**) &data, (size_t**) &data_size);
 
-			if (igbinary_serialize(&serialized, &serialized_len, value TSRMLS_CC) == 0) {
-				memcpy(data, serialized, serialized_len);
-				*data_size = serialized_len;
-				efree(serialized);
-				RETURN_TRUE;
-			}
+		/* Prepare memory manager for add */
+		context.data = data;
+		context.max_size = scache_obj->cache->header->item_size;
+
+		mm = malloc(sizeof(struct igbinary_memory_manager));
+		mm->alloc = stumblecache_alloc;
+		mm->realloc = stumblecache_realloc;
+		mm->free = stumblecache_free;
+		mm->context = (void*) &context;
+
+		if (igbinary_serialize_ex((uint8_t **) &dummy, data_size, value, mm TSRMLS_CC) == 0) {
+			RETVAL_TRUE;
+		} else {
+			RETVAL_FALSE;
 		}
+		free(mm);
+		return;
 	}
+
 	/* Need to remove the element now */
 	RETURN_FALSE;
 }
@@ -361,7 +396,7 @@ PHP_METHOD(StumbleCache, fetch)
 	long  key;
 	uint32_t data_idx;
 	void    *data;
-	uint32_t data_size;
+	size_t data_size;
 
 	if (zend_parse_method_parameters(ZEND_NUM_ARGS() TSRMLS_CC, getThis(), "Ol", &object, stumblecache_ce, &key) == FAILURE) {
 		return;
