@@ -36,8 +36,8 @@ zend_function_entry stumblecache_functions[] = {
 };
 
 static const zend_module_dep stumblecache_module_deps[] = {
-  ZEND_MOD_REQUIRED("igbinary")
-  {NULL, NULL, NULL}
+	ZEND_MOD_REQUIRED("igbinary")
+	{NULL, NULL, NULL}
 };
 
 zend_module_entry stumblecache_module_entry = {
@@ -49,7 +49,7 @@ zend_module_entry stumblecache_module_entry = {
 	stumblecache_functions,
 	PHP_MINIT(stumblecache),
 	PHP_MSHUTDOWN(stumblecache),
-	PHP_RINIT(stumblecache),	
+	PHP_RINIT(stumblecache),
 	PHP_RSHUTDOWN(stumblecache),
 	PHP_MINFO(stumblecache),
 #if ZEND_MODULE_API_NO >= 20010901
