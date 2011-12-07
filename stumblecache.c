@@ -64,14 +64,15 @@ ZEND_GET_MODULE(stumblecache)
 #endif
 
 ZEND_DECLARE_MODULE_GLOBALS(stumblecache)
-/*
+
 PHP_INI_BEGIN()
+	STD_PHP_INI_ENTRY("stumblecache.default_cache_dir", "/tmp", PHP_INI_ALL, OnUpdateString, default_cache_dir, zend_stumblecache_globals, stumblecache_globals)
 PHP_INI_END()
-*/
+
  
 static void stumblecache_init_globals(zend_stumblecache_globals *stumblecache_globals)
 {
-	/* Empty */
+	stumblecache_globals->default_cache_dir = "/tmp";
 }
 
 /* Variable declarations */
@@ -199,7 +200,11 @@ static int stumblecache_initialize(php_stumblecache_obj *obj, char *cache_id, zv
 	uint32_t order, max_items, max_datasize;
 
 	/* Create filepath */
-	spprintf(&path, 128, "%s/%s.scache", "/tmp", cache_id);
+	if (cache_id[0] != '/') {
+		spprintf(&path, 128, "%s/%s.scache", STUMBLECACHE_G(default_cache_dir), cache_id);
+	} else {
+		spprintf(&path, 128, "%s.scache", cache_id);
+	}
 
 	obj->cache = btree_open(path);
 	obj->path  = NULL;
@@ -420,6 +425,7 @@ PHP_METHOD(StumbleCache, fetch)
 PHP_MINIT_FUNCTION(stumblecache)
 {
 	ZEND_INIT_MODULE_GLOBALS(stumblecache, stumblecache_init_globals, NULL);
+	REGISTER_INI_ENTRIES();
 
 	stumblecache_register_class(TSRMLS_C);
 
@@ -450,4 +456,6 @@ PHP_MINFO_FUNCTION(stumblecache)
 	php_info_print_table_start();
 	php_info_print_table_header(2, "stumblecache support", "enabled");
 	php_info_print_table_end();
+
+	DISPLAY_INI_ENTRIES();
 }

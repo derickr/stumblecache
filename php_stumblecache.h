@@ -37,7 +37,7 @@ PHP_RSHUTDOWN_FUNCTION(stumblecache);
 PHP_MINFO_FUNCTION(stumblecache);
 
 ZEND_BEGIN_MODULE_GLOBALS(stumblecache)
-	/* empty */
+	char *default_cache_dir;
 ZEND_END_MODULE_GLOBALS(stumblecache) 
 
 typedef struct _php_stumblecache_obj php_stumblecache_obj;
