@@ -6,8 +6,12 @@ igbinary
 stumblecache.location=/tmp
 --FILE--
 <?php
-// one argument
-$o = new StumbleCache('name');
+$options = array(
+	'order' => 3,
+	'max_items' => 1024,
+	'max_datasize' => 32,
+);
+$o = new StumbleCache('name', $options);
 echo get_class($o), "\n";
 $path = $o->getPath();
 $o = NULL;

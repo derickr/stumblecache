@@ -187,11 +187,33 @@ static zend_object_value stumblecache_object_new(zend_class_entry *class_type TS
 	return stumblecache_object_new_ex(class_type, NULL TSRMLS_CC);
 }
 
-static void scache_parse_options(zval *options, uint32_t *order, uint32_t *max_items, uint32_t *max_datasize)
+static void scache_parse_options(zval *options, uint32_t *order, uint32_t *max_items, uint32_t *max_datasize TSRMLS_DC)
 {
-	*order = 3;
-	*max_items = 32;
-	*max_datasize = 256;
+	zval **dummy;
+	int    set_count = 0;
+
+	if (Z_TYPE_P(options) == IS_ARRAY) {
+		if (zend_hash_find(HASH_OF(options), "order", 6, (void**) &dummy) == SUCCESS) {
+			convert_to_long(*dummy);
+			*order = Z_LVAL_PP(dummy);
+			set_count++;
+		}
+		if (zend_hash_find(HASH_OF(options), "max_items", 10, (void**) &dummy) == SUCCESS) {
+			convert_to_long(*dummy);
+			*max_items = Z_LVAL_PP(dummy);
+			set_count++;
+		}
+		if (zend_hash_find(HASH_OF(options), "max_datasize", 13, (void**) &dummy) == SUCCESS) {
+			convert_to_long(*dummy);
+			*max_datasize = Z_LVAL_PP(dummy);
+			set_count++;
+		}
+		if (set_count != 3) {
+			php_error_docref(NULL TSRMLS_CC, E_ERROR, "Not all three options are set (need: 'order', 'max_items' and 'max_datasize').");
+		}
+	} else {
+		php_error_docref(NULL TSRMLS_CC, E_ERROR, "The options should be passed in as an array.");
+	}
 }
 
 static int stumblecache_initialize(php_stumblecache_obj *obj, char *cache_id, zval *options TSRMLS_DC)
@@ -209,7 +231,7 @@ static int stumblecache_initialize(php_stumblecache_obj *obj, char *cache_id, zv
 	obj->cache = btree_open(path);
 	obj->path  = NULL;
 	if (!obj->cache) {
-		scache_parse_options(options, &order, &max_items, &max_datasize);
+		scache_parse_options(options, &order, &max_items, &max_datasize TSRMLS_CC);
 		obj->cache = btree_create(path, order, max_items, max_datasize);
 		if (!obj->cache) {
 			return 0;
@@ -237,7 +259,7 @@ PHP_METHOD(StumbleCache, __construct)
 	zval *options = NULL;
 
 	php_set_error_handling(EH_THROW, NULL TSRMLS_CC);
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s|a", &cache_id, &cache_id_len, &options) == SUCCESS) {
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "sa", &cache_id, &cache_id_len, &options) == SUCCESS) {
 		if (!stumblecache_initialize(zend_object_store_get_object(getThis() TSRMLS_CC), cache_id, options TSRMLS_CC)) {
 			php_error_docref(NULL TSRMLS_CC, E_WARNING, "Could not initialize cache.");
 		}
