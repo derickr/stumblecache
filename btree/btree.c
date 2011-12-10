@@ -21,9 +21,10 @@ btree_node *btree_get_node(btree_tree *t, uint32_t idx)
 static int btree_allocate(char *path, uint32_t order, uint32_t nr_of_items, size_t data_size)
 {
 	int fd;
-	int64_t bytes;
+	uint64_t bytes;
 	char buffer[4096];
-	int written = 0, node_count = 0;
+	uint64_t written = 0;
+	uint32_t node_count = 0;
 	signed int written_now = 0;
 
 	/**
@@ -38,19 +39,13 @@ static int btree_allocate(char *path, uint32_t order, uint32_t nr_of_items, size
 
 	memset(buffer, 0, 4096);
 	/* FIXME: Check for signals */
-	while (written < bytes) {
-		if ((written_now = write(fd, buffer, 4096)) != -1) {
-			written += written_now;
-		} else {
-			goto cleanup;
-		}
+	if (posix_fallocate(fd, 0, bytes)) {
+		close(fd);
+		unlink(path);
+		return 0;
 	}
 	close(fd);
 	return 1;
-cleanup:
-	close(fd);
-	unlink(path);
-	return 0;
 }
 
 btree_node *btree_allocate_node(btree_tree *t)
