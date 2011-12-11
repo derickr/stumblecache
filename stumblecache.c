@@ -187,7 +187,7 @@ static zend_object_value stumblecache_object_new(zend_class_entry *class_type TS
 	return stumblecache_object_new_ex(class_type, NULL TSRMLS_CC);
 }
 
-static void scache_parse_options(zval *options, uint32_t *order, uint32_t *max_items, uint32_t *max_datasize TSRMLS_DC)
+static int scache_parse_options(zval *options, uint32_t *order, uint32_t *max_items, uint32_t *max_datasize TSRMLS_DC)
 {
 	zval **dummy;
 	int    set_count = 0;
@@ -196,24 +196,39 @@ static void scache_parse_options(zval *options, uint32_t *order, uint32_t *max_i
 		if (zend_hash_find(HASH_OF(options), "order", 6, (void**) &dummy) == SUCCESS) {
 			convert_to_long(*dummy);
 			*order = Z_LVAL_PP(dummy);
+			if (*order < 3 || *order > BTREE_MAX_ORDER) {
+				php_error_docref(NULL TSRMLS_CC, E_WARNING, "The order should be in between 3 and %d, %d was requested.", BTREE_MAX_ORDER, *order);
+				return 0;
+			}
 			set_count++;
 		}
 		if (zend_hash_find(HASH_OF(options), "max_items", 10, (void**) &dummy) == SUCCESS) {
 			convert_to_long(*dummy);
 			*max_items = Z_LVAL_PP(dummy);
+			if (*max_items < 1 || *max_items > 1024 * 1048576) {
+				php_error_docref(NULL TSRMLS_CC, E_WARNING, "The max_items should setting be in between 1 and %d, %ld was requested.", 1024 * 1048576, *max_items);
+				return 0;
+			}
 			set_count++;
 		}
 		if (zend_hash_find(HASH_OF(options), "max_datasize", 13, (void**) &dummy) == SUCCESS) {
 			convert_to_long(*dummy);
 			*max_datasize = Z_LVAL_PP(dummy);
+			if (*max_datasize < 1 || *max_datasize > 1048576) {
+				php_error_docref(NULL TSRMLS_CC, E_WARNING, "The max_datasize setting should be in between 1 and %d, %ld was requested.", 1048576, *max_datasize);
+				return 0;
+			}
 			set_count++;
 		}
 		if (set_count != 3) {
-			php_error_docref(NULL TSRMLS_CC, E_ERROR, "Not all three options are set (need: 'order', 'max_items' and 'max_datasize').");
+			php_error_docref(NULL TSRMLS_CC, E_WARNING, "Not all three options are set (need: 'order', 'max_items' and 'max_datasize').");
+		} else {
+			return 1;
 		}
 	} else {
-		php_error_docref(NULL TSRMLS_CC, E_ERROR, "The options should be passed in as an array.");
+		php_error_docref(NULL TSRMLS_CC, E_WARNING, "The options should be passed in as an array.");
 	}
+	return 0;
 }
 
 static int stumblecache_initialize(php_stumblecache_obj *obj, char *cache_id, zval *options TSRMLS_DC)
@@ -231,9 +246,13 @@ static int stumblecache_initialize(php_stumblecache_obj *obj, char *cache_id, zv
 	obj->cache = btree_open(path);
 	obj->path  = NULL;
 	if (!obj->cache) {
-		scache_parse_options(options, &order, &max_items, &max_datasize TSRMLS_CC);
+		if (!scache_parse_options(options, &order, &max_items, &max_datasize TSRMLS_CC)) {
+			efree(path);
+			return 0;
+		}
 		obj->cache = btree_create(path, order, max_items, max_datasize);
 		if (!obj->cache) {
+			efree(path);
 			return 0;
 		}
 	}
