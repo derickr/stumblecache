@@ -95,10 +95,26 @@ btree_tree *btree_open(char *path)
 	return t;
 }
 
+static void btree_init(btree_tree *tree)
+{
+	btree_node *tmp_node;
+
+	tree->header->version = 1;
+	tree->header->next_node_idx = 0;
+	tree->header->next_data_idx = 0;
+	tree->header->node_count = (tree->header->max_items / tree->header->order) + 1;
+	tree->data = tree->mmap + BTREE_HEADER_SIZE + (tree->header->node_count * 4096);
+
+	tmp_node = btree_allocate_node(tree);
+	tmp_node->leaf = 1;
+	tmp_node->nr_of_keys = 0;
+
+	tree->root = tmp_node;
+}
+
 btree_tree *btree_create(char *path, uint32_t order, uint32_t nr_of_items, size_t data_size)
 {
 	btree_tree *tmp_tree;
-	btree_node *tmp_node;
 
 	if (order > BTREE_MAX_ORDER) {
 		order = BTREE_MAX_ORDER;
@@ -112,21 +128,11 @@ btree_tree *btree_create(char *path, uint32_t order, uint32_t nr_of_items, size_
 	}
 
 	tmp_tree->path = path;
-
-	tmp_tree->header->version = 1;
 	tmp_tree->header->order = order;
 	tmp_tree->header->max_items = nr_of_items;
 	tmp_tree->header->item_size = data_size;
-	tmp_tree->header->next_node_idx = 0;
-	tmp_tree->header->next_data_idx = 0;
-	tmp_tree->header->node_count = (tmp_tree->header->max_items / tmp_tree->header->order) + 1;
-	tmp_tree->data = tmp_tree->mmap + BTREE_HEADER_SIZE + (tmp_tree->header->node_count * 4096);
 
-	tmp_node = btree_allocate_node(tmp_tree);
-	tmp_node->leaf = 1;
-	tmp_node->nr_of_keys = 0;
-
-	tmp_tree->root = tmp_node;
+	btree_init(tmp_tree);
 
 	return tmp_tree;
 }
@@ -137,6 +143,11 @@ int btree_close(btree_tree *t)
 
 	close(t->fd);
 	return munmap(t->mmap, t->file_size) == 0;
+}
+
+void btree_empty(btree_tree *t)
+{
+	btree_init(t);
 }
 
 void btree_free(btree_tree *t)

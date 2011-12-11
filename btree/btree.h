@@ -48,6 +48,7 @@ typedef struct {
 btree_tree *btree_open(char *path);
 btree_tree *btree_create(char *path, uint32_t order, uint32_t nr_of_items, size_t data_size);
 int btree_close(btree_tree *t);
+void btree_empty(btree_tree *t);
 void btree_free(btree_tree *t);
 
 void *btree_get_data(btree_tree *t, uint32_t idx, size_t *data_size);
