@@ -74,6 +74,7 @@ static int btree_open_file(btree_tree *t, char *path)
 	}
 	t->fd = fd;
 	t->mmap = mmap(NULL, fileinfo.st_size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+	t->file_size = fileinfo.st_size;
 	t->header = (btree_header*) t->mmap;
 	t->nodes = t->mmap + BTREE_HEADER_SIZE;
 	t->root = btree_get_node(t, t->header->root_node_idx);
@@ -133,11 +134,9 @@ btree_tree *btree_create(char *path, uint32_t order, uint32_t nr_of_items, size_
 int btree_close(btree_tree *t)
 {
 	int fd;
-	struct stat fileinfo;
 
-	stat(t->path, &fileinfo);
 	close(t->fd);
-	return munmap(t->mmap, fileinfo.st_size) == 0;
+	return munmap(t->mmap, t->file_size) == 0;
 }
 
 void btree_free(btree_tree *t)

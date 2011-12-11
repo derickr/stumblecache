@@ -42,6 +42,7 @@ typedef struct {
 	void         *nodes;
 	void         *data;
 	char         *path;
+	uint64_t      file_size;
 } btree_tree;
 
 btree_tree *btree_open(char *path);
