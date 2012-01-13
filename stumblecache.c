@@ -22,6 +22,7 @@
 #endif
 
 #include <stdint.h>
+#include <time.h>
 
 #include "php.h"
 #include "zend.h"
@@ -385,11 +386,14 @@ PHP_METHOD(StumbleCache, add)
 		size_t   serialized_len;
 		void    *data, *dummy;
 		size_t  *data_size;
+		time_t  *ts;
 		struct igbinary_memory_manager *mm;
 		struct stumblecache_mm_context context;
 
 		/* Add data */
-		btree_get_data_ptr(scache_obj->cache, data_idx, (void**) &data, (size_t**) &data_size);
+		btree_get_data_ptr(scache_obj->cache, data_idx, (void**) &data, (size_t**) &data_size, (time_t**) &ts);
+
+		*ts = time(NULL);
 
 		/* Prepare memory manager for add */
 		context.data = data;
@@ -443,6 +447,7 @@ PHP_METHOD(StumbleCache, fetch)
 	uint32_t data_idx;
 	void    *data;
 	size_t data_size;
+	time_t ts;
 
 	if (zend_parse_method_parameters(ZEND_NUM_ARGS() TSRMLS_CC, getThis(), "Ol", &object, stumblecache_ce, &key) == FAILURE) {
 		return;
@@ -454,7 +459,7 @@ PHP_METHOD(StumbleCache, fetch)
 
 	if (btree_search(scache_obj->cache, scache_obj->cache->root, key, &data_idx)) {
 		/* Retrieve data */
-		data = btree_get_data(scache_obj->cache, data_idx, &data_size);
+		data = btree_get_data(scache_obj->cache, data_idx, &data_size, &ts);
 		if (data_size) {
 			igbinary_unserialize((uint8_t *) data, data_size, &return_value TSRMLS_CC);
 			return;
