@@ -42,6 +42,7 @@ btree/test-programs/tree-delete2
 btree/test-programs/tree-delete3
 btree/test-programs/tree-delete4
 btree/test-programs/tree-delete5
+btree/test-programs/tree-delete6
 btree/test-programs/url-ids.txt
 btree/test-programs/url-ids2.txt
 btree/test-programs/urls.data.txt
@@ -55,3 +56,4 @@ tests/*.out
 tests/*.php
 tests/*.sh
 tmp-php.ini
+php_test_results_*.txt
