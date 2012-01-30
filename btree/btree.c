@@ -25,9 +25,7 @@ static int btree_allocate(char *path, uint32_t order, uint32_t nr_of_items, size
 	int fd;
 	uint64_t bytes;
 	char buffer[4096];
-	uint64_t written = 0;
 	uint32_t node_count = 0;
-	signed int written_now = 0;
 
 	/**
 	 * Header:   4096
@@ -141,8 +139,6 @@ btree_tree *btree_create(char *path, uint32_t order, uint32_t nr_of_items, size_
 
 int btree_close(btree_tree *t)
 {
-	int fd;
-
 	close(t->fd);
 	return munmap(t->mmap, t->file_size) == 0;
 }
