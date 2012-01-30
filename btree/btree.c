@@ -177,7 +177,7 @@ int btree_set_data(btree_tree *t, uint32_t idx, void *data, size_t data_size, ti
 	return 1;
 }
 
-int btree_get_data_ptr(btree_tree *t, uint32_t idx, void **data, size_t **data_size, time_t **ts)
+void btree_get_data_ptr(btree_tree *t, uint32_t idx, void **data, size_t **data_size, time_t **ts)
 {
 	void *location;
 

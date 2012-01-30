@@ -54,7 +54,7 @@ void btree_free(btree_tree *t);
 
 void *btree_get_data(btree_tree *t, uint32_t idx, size_t *data_size, time_t *ts);
 int btree_set_data(btree_tree *t, uint32_t idx, void *data, size_t data_size, time_t ts);
-int btree_get_data_ptr(btree_tree *t, uint32_t idx, void **data, size_t **data_size, time_t **ts);
+void btree_get_data_ptr(btree_tree *t, uint32_t idx, void **data, size_t **data_size, time_t **ts);
 
 int btree_search(btree_tree *t, btree_node *node, uint64_t key, uint32_t *idx);
 int btree_insert(btree_tree *t, uint64_t key, uint32_t *data_idx);
