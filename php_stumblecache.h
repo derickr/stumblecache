@@ -38,6 +38,7 @@ PHP_MINFO_FUNCTION(stumblecache);
 
 ZEND_BEGIN_MODULE_GLOBALS(stumblecache)
 	char *default_cache_dir;
+	long  default_ttl;
 ZEND_END_MODULE_GLOBALS(stumblecache) 
 
 typedef struct _php_stumblecache_obj php_stumblecache_obj;

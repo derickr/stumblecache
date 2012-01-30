@@ -68,6 +68,7 @@ ZEND_DECLARE_MODULE_GLOBALS(stumblecache)
 
 PHP_INI_BEGIN()
 	STD_PHP_INI_ENTRY("stumblecache.default_cache_dir", "/tmp", PHP_INI_ALL, OnUpdateString, default_cache_dir, zend_stumblecache_globals, stumblecache_globals)
+	STD_PHP_INI_ENTRY("stumblecache.default_ttl", "18000", PHP_INI_ALL, OnUpdateLong, default_ttl, zend_stumblecache_globals, stumblecache_globals)
 PHP_INI_END()
 
  
@@ -115,6 +116,7 @@ ZEND_END_ARG_INFO()
 
 ZEND_BEGIN_ARG_INFO_EX(arginfo_stumblecache_fetch, 0, 0, 1)
 	ZEND_ARG_INFO(0, key)
+	ZEND_ARG_INFO(0, ttl)
 ZEND_END_ARG_INFO()
 
 /* StumbleCache methods */
@@ -448,8 +450,9 @@ PHP_METHOD(StumbleCache, fetch)
 	void    *data;
 	size_t data_size;
 	time_t ts;
+	long   ttl = STUMBLECACHE_G(default_ttl);
 
-	if (zend_parse_method_parameters(ZEND_NUM_ARGS() TSRMLS_CC, getThis(), "Ol", &object, stumblecache_ce, &key) == FAILURE) {
+	if (zend_parse_method_parameters(ZEND_NUM_ARGS() TSRMLS_CC, getThis(), "Ol|l", &object, stumblecache_ce, &key, &ttl) == FAILURE) {
 		return;
 	}
 
@@ -460,9 +463,14 @@ PHP_METHOD(StumbleCache, fetch)
 	if (btree_search(scache_obj->cache, scache_obj->cache->root, key, &data_idx)) {
 		/* Retrieve data */
 		data = btree_get_data(scache_obj->cache, data_idx, &data_size, &ts);
-		if (data_size) {
-			igbinary_unserialize((uint8_t *) data, data_size, &return_value TSRMLS_CC);
-			return;
+		/* Check whether the data is fresh */
+		if (time(NULL) < ts + ttl) {
+			if (data_size) {
+				igbinary_unserialize((uint8_t *) data, data_size, &return_value TSRMLS_CC);
+				return;
+			}
+		} else {
+			btree_delete(scache_obj->cache, key);
 		}
 	}
 	return; /* Implicit return NULL; */
