@@ -8,7 +8,9 @@ int main(int argc, char *argv[])
 	char *data;
 	uint64_t id;
 	uint64_t found = 0;
-	uint32_t idx, data_size;
+	uint32_t idx;
+	size_t data_size;
+	time_t ts;
 
 	tmp = btree_open("test.mmap");
 	if (!tmp) {
@@ -18,7 +20,7 @@ int main(int argc, char *argv[])
 
 	id = atoll(argv[1]);
 	found += btree_search(tmp, tmp->root, id, &idx);
-	data = (char*) btree_get_data(tmp, idx, &data_size);
+	data = (char*) btree_get_data(tmp, idx, &data_size, &ts);
 	printf("Found: %lu (%u)\n%s\n", found, idx, data);
 
 	btree_free(tmp);

@@ -6,7 +6,9 @@
 int main(void)
 {
 	btree_tree *tmp;
-	uint32_t data_idx, size;
+	uint32_t data_idx;
+	size_t size;
+	time_t ts;
 	char *data;
 	int i;
 	char testdata[11];
@@ -20,9 +22,9 @@ int main(void)
 	for (i = 0; i < 205; i++) {
 		if (btree_insert(tmp, i * 3, &data_idx)) {
 			sprintf(testdata, "H: %07d", i);
-			btree_set_data(tmp, data_idx, testdata, 10);
-			data = (char*) btree_get_data(tmp, data_idx, &size);
-			printf("%s %d\n", data, size);
+			btree_set_data(tmp, data_idx, testdata, 10, time(NULL));
+			data = (char*) btree_get_data(tmp, data_idx, &size, &ts);
+			printf("%s %zd\n", data, size);
 		}
 	}
 
