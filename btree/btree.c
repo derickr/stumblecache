@@ -535,7 +535,7 @@ static int btree_delete_internal(btree_tree *t, btree_node *node, uint64_t key)
 					if (t->root->nr_of_keys == 0 && !t->root->leaf) {
 						t->root = btree_get_node(t, t->root->branch[0]);
 					}
-					btree_delete_internal(t, z, key);
+					btree_delete_internal(t, c, key);
 					return 0;
 				}
 			}

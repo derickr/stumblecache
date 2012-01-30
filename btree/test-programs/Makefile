@@ -1,7 +1,8 @@
 CFLAGS=-ggdb3 -Wall -O0 -I.. 
 BINS=tree-search tree-search2 tree-search3 \
 	tree-create tree-create2 tree-create-failures tree-create-failures2 \
-	tree-delete tree-delete2 tree-delete3 tree-delete4 tree-delete5
+	tree-delete tree-delete2 tree-delete3 tree-delete4 tree-delete5 \
+	tree-delete6
 
 all: ${BINS}
 
@@ -43,3 +44,6 @@ tree-delete4: tree-delete4.c ../btree.c ../btree.h
 
 tree-delete5: tree-delete5.c ../btree.c ../btree.h
 	gcc ${CFLAGS} -o tree-delete5 tree-delete5.c ../btree.c
+
+tree-delete6: tree-delete6.c ../btree.c ../btree.h
+	gcc ${CFLAGS} -o tree-delete6 tree-delete6.c ../btree.c
