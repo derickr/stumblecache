@@ -9,6 +9,8 @@
 #include <unistd.h>
 #include <errno.h>
 
+#define NODE_COUNT(nr_of_items, order)  (((2 * nr_of_items) / order) + 1)
+
 /* Forwards declarations */
 static void btree_dump_node(btree_tree *t, btree_node *node);
 static btree_node* btree_find_branch(btree_tree *t, btree_node *node, uint64_t key, uint32_t *i);
@@ -32,7 +34,7 @@ static int btree_allocate(char *path, uint32_t order, uint32_t nr_of_items, size
 	 * Nodes:    4096 * (nr_of_items / order)
 	 * Data:     nr_of_items * (length-marker + ts + data_size + '\0' delimiter)
 	 */
-	node_count = (nr_of_items / order) + 1;
+	node_count = NODE_COUNT(nr_of_items, order);
 	bytes = BTREE_HEADER_SIZE + (node_count * 4096) + (nr_of_items * (sizeof(size_t) + sizeof(time_t) + data_size + 1));
 
 	fd = open(path, O_CREAT | O_RDWR, S_IRUSR | S_IWUSR);
@@ -102,7 +104,7 @@ static void btree_init(btree_tree *tree)
 	tree->header->version = 1;
 	tree->header->next_node_idx = 0;
 	tree->header->next_data_idx = 0;
-	tree->header->node_count = (tree->header->max_items / tree->header->order) + 1;
+	tree->header->node_count = NODE_COUNT(tree->header->max_items, tree->header->order);
 	tree->data = tree->mmap + BTREE_HEADER_SIZE + (tree->header->node_count * 4096);
 
 	tmp_node = btree_allocate_node(tree);

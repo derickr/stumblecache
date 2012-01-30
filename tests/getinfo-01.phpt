@@ -18,5 +18,5 @@ Array
     [max_items] => 64
     [item_count] => 0
     [item_size] => 128
-    [node_count] => 22
+    [node_count] => 43
 )

@@ -42,7 +42,7 @@ array(6) {
   ["item_size"]=>
   int(32)
   ["node_count"]=>
-  int(342)
+  int(683)
 }
 StumbleCache::__construct(): The order should be in between 3 and 102, 2 was requested.
 StumbleCache::__construct(): The max_items should setting be in between 1 and 1073741824, 3729846630 was requested.
