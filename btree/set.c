@@ -7,7 +7,6 @@
 dr_set *dr_set_create(unsigned int size)
 {
 	dr_set *tmp;
-	unsigned int bytes, i;
 
 	if (size < 1) {
 		return NULL;
@@ -15,18 +14,24 @@ dr_set *dr_set_create(unsigned int size)
 
 	tmp = calloc(1, sizeof(dr_set));
 	tmp->size = size;
-	bytes = ceil((size + 7) / 8);
-	tmp->setinfo = calloc(1, bytes);
+	tmp->setinfo = calloc(1, DR_SET_SIZE(size));
 
-	// mass unset everything but the last byte
-	memset(tmp->setinfo, 0xff, size / 8);
-
-	// unset bits in the last byte
-	for (i = 0; i < size % 8; i++) {
-		dr_set_remove(tmp, i + (size / 8) * 8);
-	}
+	dr_set_init(tmp);
 
 	return tmp;
+}
+
+inline void dr_set_init(dr_set *set)
+{
+	unsigned int i;
+
+	// mass unset everything but the last byte
+	memset(set->setinfo, 0xff, set->size / 8);
+
+	// unset bits in the last byte
+	for (i = 0; i < set->size % 8; i++) {
+		dr_set_remove(set, i + (set->size / 8) * 8);
+	}
 }
 
 void dr_set_free(dr_set *set)
