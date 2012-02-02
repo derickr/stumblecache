@@ -43,6 +43,9 @@ btree/test-programs/tree-delete3
 btree/test-programs/tree-delete4
 btree/test-programs/tree-delete5
 btree/test-programs/tree-delete6
+btree/test-programs/set1
+btree/test-programs/set2
+btree/test-programs/set3
 btree/test-programs/url-ids.txt
 btree/test-programs/url-ids2.txt
 btree/test-programs/urls.data.txt
