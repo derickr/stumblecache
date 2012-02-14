@@ -441,7 +441,7 @@ static int btree_delete_internal(btree_tree *t, btree_node *node, uint64_t key)
 				node_with_prev_key = btree_find_greatest(t, y);
 				node->keys[idx] = node_with_prev_key->keys[y->nr_of_keys-1];
 //				node->branch[idx] = node_with_prev_key->branch[y->nr_of_keys-1];
-				btree_delete_internal(t, y, node_with_prev_key->keys[y->nr_of_keys-1].key);
+				return btree_delete_internal(t, y, node_with_prev_key->keys[y->nr_of_keys-1].key);
 			} else {
 				btree_node *z, *node_with_next_key;
 			/*   else //y has t-1 keys
@@ -523,8 +523,7 @@ static int btree_delete_internal(btree_tree *t, btree_node *node, uint64_t key)
 					if (t->root->nr_of_keys == 0 && !t->root->leaf) {
 						t->root = btree_get_node(t, t->root->branch[0]);
 					}
-					btree_delete_internal(t, z, key);
-					return 0;
+					return btree_delete_internal(t, z, key);
 				}
 				/* Is there a right sibling? */
 				if (i < node->nr_of_keys) { /* otherwise there is no right sibling */
@@ -535,12 +534,11 @@ static int btree_delete_internal(btree_tree *t, btree_node *node, uint64_t key)
 					if (t->root->nr_of_keys == 0 && !t->root->leaf) {
 						t->root = btree_get_node(t, t->root->branch[0]);
 					}
-					btree_delete_internal(t, c, key);
-					return 0;
+					return btree_delete_internal(t, c, key);
 				}
 			}
 proceed:
-			btree_delete_internal(t, c, key);
+			return btree_delete_internal(t, c, key);
 		}
 	}
 	return 0;
