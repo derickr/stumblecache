@@ -18,7 +18,6 @@ int main(void)
 {
 	btree_tree *tmp;
 	int i;
-	uint32_t data_idx;
 
 	tmp = btree_create("test.mmap", 5, 64, 32);
 	if (!tmp) {
