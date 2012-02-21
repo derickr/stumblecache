@@ -1,4 +1,3 @@
-#include "btree.h"
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -8,8 +7,13 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <errno.h>
+#include <math.h>
+
+#include "btree.h"
+#include "set.h"
 
 #define NODE_COUNT(nr_of_items, order)  (((2 * nr_of_items) / order) + 1)
+#define BTREE_FREELIST_SIZE(nr_of_items) ((unsigned int) (ceil(nr_of_items / 4096.0) * 4096))
 
 /* Forwards declarations */
 static void btree_dump_node(btree_tree *t, btree_node *node);
@@ -29,11 +33,15 @@ static int btree_allocate(char *path, uint32_t order, uint32_t nr_of_items, size
 
 	/**
 	 * Header:   4096
+	 * Freelist: ceil((nr_of_items + 7) / 8)
 	 * Nodes:    4096 * (nr_of_items / order)
 	 * Data:     nr_of_items * (length-marker + ts + data_size + '\0' delimiter)
 	 */
 	node_count = NODE_COUNT(nr_of_items, order);
-	bytes = BTREE_HEADER_SIZE + (node_count * 4096) + (nr_of_items * (sizeof(size_t) + sizeof(time_t) + data_size + 1));
+	bytes = BTREE_HEADER_SIZE +
+		BTREE_FREELIST_SIZE(nr_of_items) +
+		(node_count * 4096) +
+		(nr_of_items * (sizeof(size_t) + sizeof(time_t) + data_size + 1));
 
 	fd = open(path, O_CREAT | O_RDWR, S_IRUSR | S_IWUSR);
 
@@ -76,8 +84,7 @@ static int btree_open_file(btree_tree *t, char *path)
 	t->mmap = mmap(NULL, fileinfo.st_size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
 	t->file_size = fileinfo.st_size;
 	t->header = (btree_header*) t->mmap;
-	t->nodes = t->mmap + BTREE_HEADER_SIZE;
-	t->root = btree_get_node(t, t->header->root_node_idx);
+
 	return 0;
 }
 
@@ -90,7 +97,20 @@ btree_tree *btree_open(char *path)
 		free(t);
 		return NULL;
 	}
-	t->data = t->mmap + BTREE_HEADER_SIZE + (t->header->node_count * 4096);
+
+	t->freelist.size = t->header->max_items;
+	t->freelist.setinfo = t->mmap + BTREE_HEADER_SIZE;
+
+	t->nodes = t->mmap +
+		BTREE_HEADER_SIZE +
+		BTREE_FREELIST_SIZE(t->header->max_items);
+
+	t->data = t->mmap +
+		BTREE_HEADER_SIZE +
+		BTREE_FREELIST_SIZE(t->header->max_items) +
+		(t->header->node_count * 4096);
+
+	t->root = btree_get_node(t, t->header->root_node_idx);
 
 	return t;
 }
@@ -101,9 +121,20 @@ static void btree_init(btree_tree *tree)
 
 	tree->header->version = 1;
 	tree->header->next_node_idx = 0;
-	tree->header->next_data_idx = 0;
 	tree->header->node_count = NODE_COUNT(tree->header->max_items, tree->header->order);
-	tree->data = tree->mmap + BTREE_HEADER_SIZE + (tree->header->node_count * 4096);
+
+	tree->freelist.size = tree->header->max_items;
+	tree->freelist.setinfo = tree->mmap + BTREE_HEADER_SIZE;
+	dr_set_init(&(tree->freelist));
+	
+	tree->nodes = tree->mmap +
+		BTREE_HEADER_SIZE +
+		BTREE_FREELIST_SIZE(tree->header->max_items);
+
+	tree->data = tree->mmap +
+		BTREE_HEADER_SIZE +
+		BTREE_FREELIST_SIZE(tree->header->max_items) +
+		(tree->header->node_count * 4096);
 
 	tmp_node = btree_allocate_node(tree);
 	tmp_node->leaf = 1;
@@ -244,7 +275,7 @@ static void btree_split_child(btree_tree *t, btree_node *parent, uint32_t key_nr
 */
 }
 
-static void btree_insert_non_full(btree_tree *t, btree_node *node, uint64_t key, uint32_t *data_idx)
+static void btree_insert_non_full(btree_tree *t, btree_node *node, uint64_t key, uint32_t data_idx)
 {
 	uint32_t i;
 	btree_node *tmp_node;
@@ -259,13 +290,10 @@ static void btree_insert_non_full(btree_tree *t, btree_node *node, uint64_t key,
 		node->nr_of_keys++;
 
 		/* Fetch data index, and set it to the idx element here too */
-		if (data_idx) {
-			node->keys[i].idx = t->header->next_data_idx;
-			*data_idx = node->keys[i].idx;
-		}
+		node->keys[i].idx = data_idx;
 
 		/* Do administrative jobs */
-		t->header->next_data_idx++;
+		dr_set_add(&(t->freelist), data_idx);
 		t->header->item_count++;
 	} else {
 		tmp_node = btree_find_branch(t, node, key, &i);
@@ -288,7 +316,7 @@ static btree_node* btree_find_branch(btree_tree *t, btree_node *node, uint64_t k
 	return btree_get_node(t, node->branch[*i]);
 }
 
-static void btree_insert_internal(btree_tree *t, uint64_t key, uint32_t *data_idx)
+static void btree_insert_internal(btree_tree *t, uint64_t key, uint32_t data_idx)
 {
 	btree_node *r = t->root;
 
@@ -311,6 +339,7 @@ static void btree_insert_internal(btree_tree *t, uint64_t key, uint32_t *data_id
 int btree_insert(btree_tree *t, uint64_t key, uint32_t *data_idx)
 {
 	btree_node *r = t->root;
+	unsigned int tmp_data_idx;
 
 	if (t->header->item_count >= t->header->max_items) {
 		return 0;
@@ -318,7 +347,11 @@ int btree_insert(btree_tree *t, uint64_t key, uint32_t *data_idx)
 	if (btree_search(t, r, key, NULL)) {
 		return 0;
 	}
-	btree_insert_internal(t, key, data_idx);
+	if (!dr_set_find_first(&(t->freelist), &tmp_data_idx)) {
+		return 0;
+	}
+	btree_insert_internal(t, key, tmp_data_idx);
+	*data_idx = tmp_data_idx;
 	return 1;
 }
 
@@ -340,7 +373,7 @@ static btree_node *btree_find_greatest(btree_tree *t, btree_node *node)
 	return ptr;
 }
 
-static unsigned int btree_check_key_in_node(btree_node *node, uint64_t key, uint32_t *idx)
+static unsigned int btree_check_key_in_node(btree_node *node, uint64_t key, uint32_t *idx, uint32_t *data_idx)
 {
 	int i = 0;
 	while (i < node->nr_of_keys && key > node->keys[i].key) {
@@ -348,6 +381,7 @@ static unsigned int btree_check_key_in_node(btree_node *node, uint64_t key, uint
 	}
 	if (i < node->nr_of_keys && key == node->keys[i].key) {
 		*idx = i;
+		*data_idx = node->keys[i].idx;
 		return 1;
 	}
 	return 0;
@@ -409,9 +443,10 @@ static void btree_node_insert_key(btree_tree *t, btree_node *node, uint32_t pos,
 	node->nr_of_keys++;
 }
 
-static int btree_delete_internal(btree_tree *t, btree_node *node, uint64_t key)
+static int btree_delete_internal(btree_tree *t, btree_node *node, uint64_t key_to_delete, uint64_t key, uint32_t *data_idx_to_free)
 {
 	uint32_t idx;
+	uint32_t data_idx;
 
 	/* if x is a leaf then
 	 *   if k is in x then
@@ -419,17 +454,24 @@ static int btree_delete_internal(btree_tree *t, btree_node *node, uint64_t key)
 	 *   else return false //k is not in subtree
 	 */
 	if (node->leaf) {
-		if (btree_check_key_in_node(node, key, &idx)) {
+		if (btree_check_key_in_node(node, key, &idx, &data_idx)) {
 			btree_delete_key_idx_from_node(node, idx);
 			btree_delete_branch_idx_from_node(node, idx);
+			if (key == key_to_delete) {
+				*data_idx_to_free = data_idx;
+			}
 			return 1;
 		} else {
 			return 0;
 		}
 	} else {
 		/* if k is in x then */
-		if (btree_check_key_in_node(node, key, &idx)) {
+		if (btree_check_key_in_node(node, key, &idx, &data_idx)) {
 			btree_node *y, *node_with_prev_key;
+			/* Record the data_idx for this key */
+			if (key == key_to_delete) {
+				*data_idx_to_free = data_idx;
+			}
 			/*   y = the child of x that precedes k
 			 *   if y has at least t keys then
 			 *     k' = the predecessor of k (use B-Tree-FindLargest)
@@ -441,7 +483,7 @@ static int btree_delete_internal(btree_tree *t, btree_node *node, uint64_t key)
 				node_with_prev_key = btree_find_greatest(t, y);
 				node->keys[idx] = node_with_prev_key->keys[y->nr_of_keys-1];
 //				node->branch[idx] = node_with_prev_key->branch[y->nr_of_keys-1];
-				return btree_delete_internal(t, y, node_with_prev_key->keys[y->nr_of_keys-1].key);
+				return btree_delete_internal(t, y, key_to_delete, node_with_prev_key->keys[y->nr_of_keys-1].key, data_idx_to_free);
 			} else {
 				btree_node *z, *node_with_next_key;
 			/*   else //y has t-1 keys
@@ -456,7 +498,7 @@ static int btree_delete_internal(btree_tree *t, btree_node *node, uint64_t key)
 					node_with_next_key = btree_find_smallest(t, z);
 					node->keys[idx] = node_with_next_key->keys[0];
 //					node->branch[idx] = node_with_next_key->branch[0];
-					btree_delete_internal(t, z, node_with_next_key->keys[0].key);
+					btree_delete_internal(t, z, key_to_delete, node_with_next_key->keys[0].key, data_idx_to_free);
 				} else {
 			/*     else //both y and z have t-1 keys
 			 *       merge k and all of z into y //y now contains 2t-1 keys.
@@ -466,7 +508,7 @@ static int btree_delete_internal(btree_tree *t, btree_node *node, uint64_t key)
 					btree_merge(t, y, node, idx, z);
 					btree_delete_key_idx_from_node(node, idx);
 					btree_delete_branch_idx_from_node(node, idx + 1);
-					btree_delete_internal(t, y, key);
+					btree_delete_internal(t, y, key_to_delete, key, data_idx_to_free);
 					if (t->root->nr_of_keys == 0 && !t->root->leaf) {
 						t->root = btree_get_node(t, t->root->branch[0]);
 					}
@@ -487,7 +529,7 @@ static int btree_delete_internal(btree_tree *t, btree_node *node, uint64_t key)
 					if (z->nr_of_keys > BTREE_T(t) - 1) {
 						node_with_prev_key = btree_find_greatest(t, z);
 						btree_node_insert_key(t, c, 0, node_with_prev_key->keys[z->nr_of_keys-1]);
-						btree_delete_internal(t, z, node_with_prev_key->keys[z->nr_of_keys-1].key);
+						btree_delete_internal(t, z, key_to_delete, node_with_prev_key->keys[z->nr_of_keys-1].key, data_idx_to_free);
 
 						/* Swap parent and first key in C */
 						tmp_key = node->keys[i-1];
@@ -503,7 +545,7 @@ static int btree_delete_internal(btree_tree *t, btree_node *node, uint64_t key)
 					if (z->nr_of_keys > BTREE_T(t) - 1) {
 						node_with_next_key = btree_find_smallest(t, z);
 						btree_node_insert_key(t, c, c->nr_of_keys, node_with_next_key->keys[0]);
-						btree_delete_internal(t, z, node_with_next_key->keys[0].key);
+						btree_delete_internal(t, z, key_to_delete, node_with_next_key->keys[0].key, data_idx_to_free);
 
 						/* Swap parent and last key in C */
 						tmp_key = node->keys[i];
@@ -523,7 +565,7 @@ static int btree_delete_internal(btree_tree *t, btree_node *node, uint64_t key)
 					if (t->root->nr_of_keys == 0 && !t->root->leaf) {
 						t->root = btree_get_node(t, t->root->branch[0]);
 					}
-					return btree_delete_internal(t, z, key);
+					return btree_delete_internal(t, z, key_to_delete, key, data_idx_to_free);
 				}
 				/* Is there a right sibling? */
 				if (i < node->nr_of_keys) { /* otherwise there is no right sibling */
@@ -534,11 +576,11 @@ static int btree_delete_internal(btree_tree *t, btree_node *node, uint64_t key)
 					if (t->root->nr_of_keys == 0 && !t->root->leaf) {
 						t->root = btree_get_node(t, t->root->branch[0]);
 					}
-					return btree_delete_internal(t, c, key);
+					return btree_delete_internal(t, c, key_to_delete, key, data_idx_to_free);
 				}
 			}
 proceed:
-			return btree_delete_internal(t, c, key);
+			return btree_delete_internal(t, c, key_to_delete, key, data_idx_to_free);
 		}
 	}
 	return 0;
@@ -547,8 +589,15 @@ proceed:
 int btree_delete(btree_tree *t, uint64_t key)
 {
 	btree_node *n = t->root;
+	uint32_t data_idx = 99999999; // the one to free
 
-	return btree_delete_internal(t, n, key);
+	if (btree_delete_internal(t, n, key, key, &data_idx)) {
+		/* Do administrative jobs */
+		t->header->item_count--;
+		dr_set_remove(&(t->freelist), data_idx);
+		return 1;
+	}
+	return 0;
 }
 
 static void btree_dump_node_dot(btree_tree *t, btree_node *node)

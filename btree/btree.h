@@ -7,6 +7,8 @@
 #include <stddef.h>
 #include <time.h>
 
+#include "set.h"
+
 typedef struct {
 	uint64_t key;
 	uint32_t idx;       /* index into data portion */
@@ -31,7 +33,6 @@ typedef struct {
 	size_t   item_size;
 	uint32_t node_count;
 	uint32_t next_node_idx;
-	uint32_t next_data_idx;
 	uint32_t root_node_idx;
 } btree_header;
 
@@ -40,6 +41,7 @@ typedef struct {
 	btree_node   *root;
 	int           fd;
 	void         *mmap;
+	dr_set        freelist;
 	void         *nodes;
 	void         *data;
 	char         *path;
