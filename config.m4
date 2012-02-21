@@ -5,7 +5,7 @@ PHP_ARG_ENABLE(stumblecache, whether to enable stumblecache support,
 [  --enable-stumblecache    Enable stumblecache support])
 
 if test "$PHP_STUMBLECACHE" != "no"; then
-  PHP_NEW_EXTENSION(stumblecache, stumblecache.c btree/btree.c, $ext_shared)
+  PHP_NEW_EXTENSION(stumblecache, stumblecache.c btree/btree.c btree/set.c, $ext_shared)
   PHP_SUBST(STUMBLECACHE_SHARED_LIBADD)
   PHP_ADD_BUILD_DIR($ext_builddir/lib, 1)
 
