@@ -18,6 +18,8 @@
 /* Forwards declarations */
 static void btree_dump_node(btree_tree *t, btree_node *node);
 static btree_node* btree_find_branch(btree_tree *t, btree_node *node, uint64_t key, uint32_t *i);
+static void *btree_get_data_location(btree_tree *t, uint32_t idx);
+
 
 btree_node *btree_get_node(btree_tree *t, uint32_t idx)
 {
@@ -184,11 +186,16 @@ void btree_free(btree_tree *t)
 	free(t);
 }
 
+inline static void *btree_get_data_location(btree_tree *t, uint32_t idx)
+{
+	return t->data + (idx * (t->header->item_size + 1 + sizeof(size_t) + sizeof(time_t)));
+}
+
 void *btree_get_data(btree_tree *t, uint32_t idx, size_t *data_size, time_t *ts)
 {
 	void *location;
 
-	location = t->data + (idx * (t->header->item_size + 1 + sizeof(size_t) + sizeof(time_t)));
+	location = btree_get_data_location(t, idx);
 	*data_size = *((size_t*)location);
 	*ts = *((time_t*) (location + sizeof(size_t)));
 	return location + sizeof(size_t) + sizeof(time_t);
@@ -201,7 +208,7 @@ int btree_set_data(btree_tree *t, uint32_t idx, void *data, size_t data_size, ti
 	if (data_size > t->header->item_size) {
 		return 0;
 	}
-	location = t->data + (idx * (t->header->item_size + 1 + sizeof(size_t) + sizeof(time_t)));
+	location = btree_get_data_location(t, idx);
 	*((size_t*)location) = data_size;
 	*(time_t*) (location + sizeof(size_t)) = ts;
 	memcpy(location + sizeof(size_t) + sizeof(time_t), data, data_size);
@@ -212,7 +219,7 @@ void btree_get_data_ptr(btree_tree *t, uint32_t idx, void **data, size_t **data_
 {
 	void *location;
 
-	location = t->data + (idx * (t->header->item_size + 1 + sizeof(size_t) + sizeof(time_t)));
+	location = btree_get_data_location(t, idx);
 	*data = location + sizeof(size_t) + sizeof(time_t);
 	*data_size = ((size_t*)location);
 	*ts = (time_t*) (location + sizeof(size_t));
