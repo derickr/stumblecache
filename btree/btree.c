@@ -115,32 +115,32 @@ btree_tree *btree_open(char *path)
 	return t;
 }
 
-static void btree_init(btree_tree *tree)
+static void btree_init(btree_tree *t)
 {
 	btree_node *tmp_node;
 
-	tree->header->version = 1;
-	tree->header->next_node_idx = 0;
-	tree->header->node_count = NODE_COUNT(tree->header->max_items, tree->header->order);
+	t->header->version = 1;
+	t->header->next_node_idx = 0;
+	t->header->node_count = NODE_COUNT(t->header->max_items, t->header->order);
 
-	tree->freelist.size = tree->header->max_items;
-	tree->freelist.setinfo = tree->mmap + BTREE_HEADER_SIZE;
-	dr_set_init(&(tree->freelist));
+	t->freelist.size = t->header->max_items;
+	t->freelist.setinfo = t->mmap + BTREE_HEADER_SIZE;
+	dr_set_init(&(t->freelist));
 	
-	tree->nodes = tree->mmap +
+	t->nodes = t->mmap +
 		BTREE_HEADER_SIZE +
-		BTREE_FREELIST_SIZE(tree->header->max_items);
+		BTREE_FREELIST_SIZE(t->header->max_items);
 
-	tree->data = tree->mmap +
+	t->data = t->mmap +
 		BTREE_HEADER_SIZE +
-		BTREE_FREELIST_SIZE(tree->header->max_items) +
-		(tree->header->node_count * 4096);
+		BTREE_FREELIST_SIZE(t->header->max_items) +
+		(t->header->node_count * 4096);
 
-	tmp_node = btree_allocate_node(tree);
+	tmp_node = btree_allocate_node(t);
 	tmp_node->leaf = 1;
 	tmp_node->nr_of_keys = 0;
 
-	tree->root = tmp_node;
+	t->root = tmp_node;
 }
 
 btree_tree *btree_create(char *path, uint32_t order, uint32_t nr_of_items, size_t data_size)
