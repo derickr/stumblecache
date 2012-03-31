@@ -8,6 +8,7 @@
 #include <unistd.h>
 #include <errno.h>
 #include <math.h>
+#include <fcntl.h>
 
 #include "btree.h"
 #include "set.h"
@@ -21,6 +22,75 @@ static btree_node* btree_find_branch(btree_tree *t, btree_node *node, uint64_t k
 static void *btree_get_data_location(btree_tree *t, uint32_t idx);
 
 
+/* Locking */
+#define BT_LOCK btree_admin_lock(t)
+#define BT_UNLOCK btree_admin_unlock(t)
+#define BT_LOCK_DATA_R btree_data_lockr(t, idx)
+#define BT_LOCK_DATA_W btree_data_lockw(t, idx)
+#define BT_UNLOCK_DATA btree_data_unlock(t, idx)
+
+static int btree_admin_lock(btree_tree *t)
+{
+	struct flock fls;
+
+	fls.l_type   = F_WRLCK;
+	fls.l_whence = SEEK_SET;
+	fls.l_start  = 0;
+	fls.l_len    = t->data - (void*) t;
+
+	if (fcntl(t->fd, F_SETLKW, &fls) == -1) {
+		return 0;
+	}
+	return 1;
+}
+
+static int btree_admin_unlock(btree_tree *t)
+{
+	struct flock fls;
+
+	fls.l_type   = F_UNLCK;
+	fls.l_whence = SEEK_SET;
+	fls.l_start  = 0;
+	fls.l_len    = t->data - (void*) t;
+
+	if (fcntl(t->fd, F_SETLKW, &fls) == -1) {
+		return 0;
+	}
+	return 1;
+}
+
+inline static int btree_data_lock_helper(btree_tree *t, uint32_t idx, short type)
+{
+	struct flock fls;
+
+	fls.l_type   = type;
+	fls.l_whence = SEEK_SET;
+	fls.l_start  = btree_get_data_location(t, idx) - (void*) t;
+	fls.l_len    = t->header->item_size;
+
+	if (fcntl(t->fd, F_SETLKW, &fls) == -1) {
+		return 0;
+	}
+	return 1;
+}
+
+static int btree_data_lockr(btree_tree *t, uint32_t idx)
+{
+	return btree_data_lock_helper(t, idx, F_RDLCK);
+}
+
+static int btree_data_lockw(btree_tree *t, uint32_t idx)
+{
+	return btree_data_lock_helper(t, idx, F_WRLCK);
+}
+
+static int btree_data_unlock(btree_tree *t, uint32_t idx)
+{
+	return btree_data_lock_helper(t, idx, F_UNLCK);
+}
+
+
+/* Allocations */
 btree_node *btree_get_node(btree_tree *t, uint32_t idx)
 {
 	return (btree_node*) (t->nodes + (idx * 4096));
