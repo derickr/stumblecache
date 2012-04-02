@@ -15,19 +15,21 @@
 
 #define NODE_COUNT(nr_of_items, order)  (((2 * nr_of_items) / order) + 1)
 #define BTREE_FREELIST_SIZE(nr_of_items) ((unsigned int) (ceil(nr_of_items / 4096.0) * 4096))
+#define BTREE_DATA_EXTRA (1 + sizeof(size_t) + sizeof(time_t))
 
 /* Forwards declarations */
 static void btree_dump_node(btree_tree *t, btree_node *node);
 static btree_node* btree_find_branch(btree_tree *t, btree_node *node, uint64_t key, uint32_t *i);
 static void *btree_get_data_location(btree_tree *t, uint32_t idx);
 
+#define LOCK_DEBUG 1
 
 /* Locking */
 #define BT_LOCK btree_admin_lock(t)
 #define BT_UNLOCK btree_admin_unlock(t)
-#define BT_LOCK_DATA_R btree_data_lockr(t, idx)
-#define BT_LOCK_DATA_W btree_data_lockw(t, idx)
-#define BT_UNLOCK_DATA btree_data_unlock(t, idx)
+#define BT_LOCK_DATA_R(idx) btree_data_lockr(t, (idx))
+#define BT_LOCK_DATA_W(idx) btree_data_lockw(t, (idx))
+#define BT_UNLOCK_DATA(idx) btree_data_unlock(t, (idx))
 
 static int btree_admin_lock(btree_tree *t)
 {
@@ -36,7 +38,11 @@ static int btree_admin_lock(btree_tree *t)
 	fls.l_type   = F_WRLCK;
 	fls.l_whence = SEEK_SET;
 	fls.l_start  = 0;
-	fls.l_len    = t->data - (void*) t;
+	fls.l_len    = t->data - t->mmap;
+
+#if LOCK_DEBUG
+	printf("LOCKW   %4x - %4x\n", fls.l_start, fls.l_len);
+#endif
 
 	if (fcntl(t->fd, F_SETLKW, &fls) == -1) {
 		return 0;
@@ -51,11 +57,21 @@ static int btree_admin_unlock(btree_tree *t)
 	fls.l_type   = F_UNLCK;
 	fls.l_whence = SEEK_SET;
 	fls.l_start  = 0;
-	fls.l_len    = t->data - (void*) t;
+	fls.l_len    = t->data - t->mmap;
+
+#if LOCK_DEBUG
+	printf("UNLOCK  %4x - %4x", fls.l_start, fls.l_len);
+#endif
 
 	if (fcntl(t->fd, F_SETLKW, &fls) == -1) {
+#if LOCK_DEBUG
+		printf(" X: %d\n", errno);
+#endif
 		return 0;
 	}
+#if LOCK_DEBUG
+	printf(" V\n");
+#endif
 	return 1;
 }
 
@@ -65,12 +81,22 @@ inline static int btree_data_lock_helper(btree_tree *t, uint32_t idx, short type
 
 	fls.l_type   = type;
 	fls.l_whence = SEEK_SET;
-	fls.l_start  = btree_get_data_location(t, idx) - (void*) t;
-	fls.l_len    = t->header->item_size;
+	fls.l_start  = btree_get_data_location(t, idx) - t->mmap;
+	fls.l_len    = t->header->item_size + BTREE_DATA_EXTRA;
+
+#if LOCK_DEBUG
+	printf("%7s %4x - %4x", type == F_RDLCK ? "DLOCKR" : (type == F_WRLCK ? "DLOCKW" : "UNLOCKD" ), fls.l_start, fls.l_len);
+#endif
 
 	if (fcntl(t->fd, F_SETLKW, &fls) == -1) {
+#if LOCK_DEBUG
+		printf(" X: %d\n", errno);
+#endif
 		return 0;
 	}
+#if LOCK_DEBUG
+	printf(" V\n");
+#endif
 	return 1;
 }
 
@@ -91,7 +117,7 @@ static int btree_data_unlock(btree_tree *t, uint32_t idx)
 
 
 /* Allocations */
-btree_node *btree_get_node(btree_tree *t, uint32_t idx)
+static btree_node *btree_get_node(btree_tree *t, uint32_t idx)
 {
 	return (btree_node*) (t->nodes + (idx * 4096));
 }
@@ -113,7 +139,7 @@ static int btree_allocate(char *path, uint32_t order, uint32_t nr_of_items, size
 	bytes = BTREE_HEADER_SIZE +
 		BTREE_FREELIST_SIZE(nr_of_items) +
 		(node_count * 4096) +
-		(nr_of_items * (sizeof(size_t) + sizeof(time_t) + data_size + 1));
+		(nr_of_items * (BTREE_DATA_EXTRA + data_size));
 
 	fd = open(path, O_CREAT | O_RDWR, S_IRUSR | S_IWUSR);
 
@@ -128,7 +154,7 @@ static int btree_allocate(char *path, uint32_t order, uint32_t nr_of_items, size
 	return 1;
 }
 
-btree_node *btree_allocate_node(btree_tree *t)
+static btree_node *btree_allocate_node(btree_tree *t)
 {
 	btree_node *tmp_node;
 
@@ -248,7 +274,9 @@ int btree_close(btree_tree *t)
 
 void btree_empty(btree_tree *t)
 {
+	BT_LOCK;
 	btree_init(t);
+	BT_UNLOCK;
 }
 
 void btree_free(btree_tree *t)
@@ -258,7 +286,7 @@ void btree_free(btree_tree *t)
 
 inline static void *btree_get_data_location(btree_tree *t, uint32_t idx)
 {
-	return t->data + (idx * (t->header->item_size + 1 + sizeof(size_t) + sizeof(time_t)));
+	return t->data + (idx * (t->header->item_size + BTREE_DATA_EXTRA));
 }
 
 void *btree_get_data(btree_tree *t, uint32_t idx, size_t *data_size, time_t *ts)
@@ -278,10 +306,13 @@ int btree_set_data(btree_tree *t, uint32_t idx, void *data, size_t data_size, ti
 	if (data_size > t->header->item_size) {
 		return 0;
 	}
+
+	BT_LOCK;
 	location = btree_get_data_location(t, idx);
 	*((size_t*)location) = data_size;
 	*(time_t*) (location + sizeof(size_t)) = ts;
 	memcpy(location + sizeof(size_t) + sizeof(time_t), data, data_size);
+	BT_UNLOCK;
 	return 1;
 }
 
@@ -295,7 +326,7 @@ void btree_get_data_ptr(btree_tree *t, uint32_t idx, void **data, size_t **data_
 	*ts = (time_t*) (location + sizeof(size_t));
 }
 
-int btree_search(btree_tree *t, btree_node *node, uint64_t key, uint32_t *idx)
+int btree_search_internal(btree_tree *t, btree_node *node, uint64_t key, uint32_t *idx)
 {
 	int i = 0;
 	while (i < node->nr_of_keys && key > node->keys[i].key) {
@@ -313,8 +344,20 @@ int btree_search(btree_tree *t, btree_node *node, uint64_t key, uint32_t *idx)
 		return 0;
 	} else {
 		btree_node *tmp_node = btree_get_node(t, node->branch[i]);
-		return btree_search(t, tmp_node, key, idx);
+		return btree_search_internal(t, tmp_node, key, idx);
 	}
+}
+
+/* This function will lock the data index for writing FIXME: Should use R for normal finds */
+int btree_search(btree_tree *t, btree_node *node, uint64_t key, uint32_t *idx)
+{
+	int retval;
+
+	BT_LOCK;
+	retval = btree_search_internal(t, node, key, idx);
+	BT_LOCK_DATA_W(*idx);
+	BT_UNLOCK;
+	return retval;
 }
 
 static void btree_split_child(btree_tree *t, btree_node *parent, uint32_t key_nr, btree_node *child)
@@ -413,15 +456,17 @@ static void btree_insert_internal(btree_tree *t, uint64_t key, uint32_t data_idx
 	}
 }
 
+/* This function will lock the data index for writing */
 int btree_insert(btree_tree *t, uint64_t key, uint32_t *data_idx)
 {
 	btree_node *r = t->root;
 	unsigned int tmp_data_idx;
 
+	BT_LOCK;
 	if (t->header->item_count >= t->header->max_items) {
 		return 0;
 	}
-	if (btree_search(t, r, key, NULL)) {
+	if (btree_search_internal(t, r, key, NULL)) {
 		return 0;
 	}
 	if (!dr_set_find_first(&(t->freelist), &tmp_data_idx)) {
@@ -429,6 +474,8 @@ int btree_insert(btree_tree *t, uint64_t key, uint32_t *data_idx)
 	}
 	btree_insert_internal(t, key, tmp_data_idx);
 	*data_idx = tmp_data_idx;
+	BT_LOCK_DATA_W(tmp_data_idx);
+	BT_UNLOCK;
 	return 1;
 }
 
@@ -668,12 +715,15 @@ int btree_delete(btree_tree *t, uint64_t key)
 	btree_node *n = t->root;
 	uint32_t data_idx = 99999999; // the one to free
 
+	BT_LOCK;
 	if (btree_delete_internal(t, n, key, key, &data_idx)) {
 		/* Do administrative jobs */
 		t->header->item_count--;
 		dr_set_remove(&(t->freelist), data_idx);
+		BT_UNLOCK;
 		return 1;
 	}
+	BT_UNLOCK;
 	return 0;
 }
 
@@ -705,9 +755,11 @@ static void btree_dump_node_dot(btree_tree *t, btree_node *node)
 
 void btree_dump_dot(btree_tree *t)
 {
+	BT_LOCK;
 	printf("digraph g {\ngraph [ rankdir = \"TB\" ];\nnode [ fontsize = \"16\" shape = \"record\" ];\n");
 	btree_dump_node_dot(t, t->root);
 	printf("}\n");
+	BT_UNLOCK;
 }
 
 
@@ -734,8 +786,10 @@ static void btree_dump_node_test(btree_tree *t, btree_node *node, int level)
 
 void btree_dump_test(btree_tree *t)
 {
+	BT_LOCK;
 	btree_dump_node_test(t, t->root, 0);
 	printf("\n");
+	BT_UNLOCK;
 }
 
 
@@ -760,7 +814,9 @@ static void btree_dump_node(btree_tree *t, btree_node *node)
 
 void btree_dump(btree_tree *t)
 {
+	BT_LOCK;
 	printf("-------\n");
 	btree_dump_node(t, t->root);
 	printf("\n-------\n");
+	BT_UNLOCK;
 }
