@@ -110,7 +110,7 @@ static int btree_data_lockw(btree_tree *t, uint32_t idx)
 	return btree_data_lock_helper(t, idx, F_WRLCK);
 }
 
-static int btree_data_unlock(btree_tree *t, uint32_t idx)
+int btree_data_unlock(btree_tree *t, uint32_t idx)
 {
 	return btree_data_lock_helper(t, idx, F_UNLCK);
 }
@@ -354,8 +354,9 @@ int btree_search(btree_tree *t, btree_node *node, uint64_t key, uint32_t *idx)
 	int retval;
 
 	BT_LOCK;
-	retval = btree_search_internal(t, node, key, idx);
-	BT_LOCK_DATA_W(*idx);
+	if (1 == (retval = btree_search_internal(t, node, key, idx))) {
+		BT_LOCK_DATA_R(*idx);
+	}
 	BT_UNLOCK;
 	return retval;
 }
@@ -464,12 +465,15 @@ int btree_insert(btree_tree *t, uint64_t key, uint32_t *data_idx)
 
 	BT_LOCK;
 	if (t->header->item_count >= t->header->max_items) {
+		BT_UNLOCK;
 		return 0;
 	}
 	if (btree_search_internal(t, r, key, NULL)) {
+		BT_UNLOCK;
 		return 0;
 	}
 	if (!dr_set_find_first(&(t->freelist), &tmp_data_idx)) {
+		BT_UNLOCK;
 		return 0;
 	}
 	btree_insert_internal(t, key, tmp_data_idx);

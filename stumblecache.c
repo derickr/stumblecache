@@ -413,6 +413,7 @@ PHP_METHOD(StumbleCache, add)
 			RETVAL_FALSE;
 		}
 		free(mm);
+		btree_data_unlock(scache_obj->cache, data_idx);
 		return;
 	}
 
@@ -463,6 +464,8 @@ PHP_METHOD(StumbleCache, fetch)
 	if (btree_search(scache_obj->cache, scache_obj->cache->root, key, &data_idx)) {
 		/* Retrieve data */
 		data = btree_get_data(scache_obj->cache, data_idx, &data_size, &ts);
+		btree_data_unlock(scache_obj->cache, data_idx);
+
 		/* Check whether the data is fresh */
 		if (time(NULL) < ts + ttl) {
 			if (data_size) {
