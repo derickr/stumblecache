@@ -2,6 +2,8 @@
 StumbleCache
 ============
 
+blah blah
+
 - MMAP based file backed
 - Fixed allocations ie. 500k 2k cache blocks
 - No gc, if we see a url once in will most likely be used again so just let it
