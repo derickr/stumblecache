@@ -124,7 +124,7 @@ static btree_node *btree_get_node(btree_tree *t, uint32_t idx)
 
 static int btree_allocate(char *path, uint32_t order, uint32_t nr_of_items, size_t data_size)
 {
-	int fd;
+	int fd, err;
 	uint64_t bytes;
 	char buffer[4096];
 	uint32_t node_count = 0;
@@ -144,8 +144,13 @@ static int btree_allocate(char *path, uint32_t order, uint32_t nr_of_items, size
 	fd = open(path, O_CREAT | O_RDWR, S_IRUSR | S_IWUSR);
 
 	memset(buffer, 0, 4096);
-	/* FIXME: Check for signals */
-	if (posix_fallocate(fd, 0, bytes)) {
+	/* This will keep attempting to do the posix_fallocate
+	 * As long as signals are being handled it will continue trying */
+	do {
+		err = posix_fallocate(fd, 0, bytes);
+	} while(err == EINTR);
+
+	if (err) {
 		close(fd);
 		unlink(path);
 		return 0;
